@@ -6,7 +6,7 @@ extends Node
 
 @export var water_level := 0.0
 ## How deep (in metres) before the water is at its darkest.
-@export var dark_depth := 45.0
+@export var dark_depth := 25.0
 
 @export_group("Near the surface")
 @export var shallow_color := Color(0.05, 0.17, 0.22)
@@ -15,10 +15,10 @@ extends Node
 
 @export_group("Deep")
 @export var deep_color := Color(0.0, 0.0, 0.0)
-## How far you can see at the darkest depth. Keep it past the camera distance so the whale stays visible.
-@export var deep_visibility := 26.0
+## How far you can see at the darkest depth. Tiny = pitch black (the whale and echo dots ignore the fog).
+@export var deep_visibility := 1.5
 ## Fraction of sunlight that still reaches the deepest water.
-@export var deep_light := 0.12
+@export var deep_light := 0.0
 
 var _below: Environment
 var _sun: DirectionalLight3D
@@ -61,10 +61,10 @@ func _process(_delta: float) -> void:
 	var t := clampf(depth / dark_depth, 0.0, 1.0)
 	if _sun:
 		_sun.shadow_enabled = t < 0.3 # Shadows aren't visible in dark water.
-	var visibility := lerpf(shallow_visibility, deep_visibility, t)
+	# Visibility shrinks fast at first, like light fading in real water.
+	var visibility := shallow_visibility * pow(deep_visibility / shallow_visibility, t)
 	_below.fog_light_color = shallow_color.lerp(deep_color, t)
-	# Near the surface the haze starts right away (it looks like water); deep down it
-	# starts a little out so the whale itself stays visible.
+	# Near the surface the haze starts right away, so it looks like water.
 	_below.fog_depth_begin = visibility * 0.4 * t
 	_below.fog_depth_end = visibility
 	_below.ambient_light_energy = lerpf(1.0, deep_light, t)

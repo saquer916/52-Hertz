@@ -39,6 +39,21 @@ func _ready() -> void:
 	speed = cruise_speed
 	is_underwater = global_position.y < water_level
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	_stay_visible_in_the_dark()
+
+
+## Deep water is pitch black, but the player still needs to see their whale.
+## The whale ignores the fog, and goes on render layer 2 so the WhaleLight
+## (which only lights layer 2) can light it without lighting the walls.
+func _stay_visible_in_the_dark() -> void:
+	for mesh: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
+		mesh.layers = 2
+		for i in mesh.get_surface_override_material_count():
+			var material := mesh.get_active_material(i)
+			if material is BaseMaterial3D:
+				material = material.duplicate()
+				material.disable_fog = true
+				mesh.set_surface_override_material(i, material)
 
 
 func _unhandled_input(event: InputEvent) -> void:

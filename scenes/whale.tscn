@@ -30,6 +30,13 @@ bend_axis = Vector3(0, 0, 1)
 [node name="Humpback" parent="Model" instance=ExtResource("4_humpback")]
 transform = Transform3D(0, 0, -0.50578, 0, 0.50578, 0, 0.50578, 0, 0, 0, -1.77, 1.0116)
 
+[node name="WhaleLight" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 9, 8)
+light_color = Color(0.75, 0.85, 1, 1)
+light_energy = 0.6
+light_cull_mask = 2
+omni_range = 30.0
+
 [node name="Echolocation" type="Node3D" parent="." unique_id=311001523]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6.8)
 script = ExtResource("2_upqel")
