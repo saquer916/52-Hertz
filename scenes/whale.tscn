@@ -3,19 +3,11 @@
 [ext_resource type="Script" uid="uid://blksg1xuydfbb" path="res://scripts/whale.gd" id="1_whale"]
 [ext_resource type="Script" uid="uid://caif2hv1g1fx6" path="res://scenes/echolocation.gd" id="2_upqel"]
 [ext_resource type="Script" uid="uid://b2kt61os643r6" path="res://scripts/chase_camera.gd" id="3_camera"]
+[ext_resource type="PackedScene" path="res://assets/models/killer_whale/scene.gltf" id="4_orca"]
 
 [sub_resource type="CapsuleShape3D" id="BodyShape"]
-radius = 1.6
-height = 11.0
-
-[sub_resource type="StandardMaterial3D" id="PlaceholderSkin"]
-albedo_color = Color(0.22, 0.27, 0.32, 1)
-roughness = 0.4
-
-[sub_resource type="CapsuleMesh" id="PlaceholderMesh"]
-material = SubResource("PlaceholderSkin")
-radius = 1.6
-height = 11.0
+radius = 1.0
+height = 8.5
 
 [node name="Whale" type="CharacterBody3D" unique_id=1765649415]
 collision_layer = 2
@@ -28,15 +20,16 @@ shape = SubResource("BodyShape")
 
 [node name="Model" type="Node3D" parent="." unique_id=1699720965]
 
-[node name="PlaceholderBody" type="MeshInstance3D" parent="Model" unique_id=752446276]
-transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
-mesh = SubResource("PlaceholderMesh")
+[node name="Orca" parent="Model" instance=ExtResource("4_orca")]
+transform = Transform3D(-0.0092391, 0, 0, 0, 0.0092391, 0, 0, 0, -0.0092391, 0, -0.106, -4.212)
 
 [node name="Echolocation" type="Node3D" parent="." unique_id=311001523]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -4.2)
 script = ExtResource("2_upqel")
 
 [node name="ChaseCamera" type="Camera3D" parent="." unique_id=1005061656]
 top_level = true
 current = true
 script = ExtResource("3_camera")
+distance = 13.0
+height = 3.0
