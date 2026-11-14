@@ -412,37 +412,35 @@ void Level::drawShadow(const glm::mat4& lightViewProj) const {
 bool Level::raycast(glm::vec3 from, glm::vec3 dir, float maxDist, RayHit& hit) const {
   float best = maxDist;
   bool found = false;
-  auto test = [&](const Box& b) {
+  for (const Box& b : walls_) {
     float tmin = 0.0f, tmax = best;
-    int axis = -1;
-    float sign = 0.0f;
+    int hitAxis = -1; 
+    float hitSign = 0.0f;
+    bool miss = false;
     for (int a = 0; a < 3; ++a) {
       if (std::fabs(dir[a]) < 1e-8f) {
-        if (from[a] < b.lo[a] || from[a] > b.hi[a]) return;
+        if (from[a] < b.lo[a] || from[a] > b.hi[a]) { miss = true; break; }
         continue;
       }
-      float inv = 1.0f / dir[a];
-      float t0 = (b.lo[a] - from[a]) * inv, t1 = (b.hi[a] - from[a]) * inv;
-      float s = -1.0f;
-      if (t0 > t1) std::swap(t0, t1), s = 1.0f;
-      if (t0 > tmin) tmin = t0, axis = a, sign = s;
+      float t0 = (b.lo[a] - from[a]) / dir[a];
+      float t1 = (b.hi[a] - from[a]) / dir[a];
+      float sign = -1.0f;
+      if (t0 > t1) { std::swap(t0, t1); sign = 1.0f; }
+      if (t0 > tmin) { tmin = t0; hitAxis = a; hitSign = sign; }
       tmax = std::min(tmax, t1);
-      if (tmin > tmax) return;
+      if (tmin > tmax) { miss = true; break; }
     }
-    if (axis < 0) return;  // started inside
+    if (miss || hitAxis < 0) continue;
     best = tmin;
     found = true;
     hit.t = tmin;
     hit.pos = from + dir * tmin;
     hit.normal = glm::vec3(0.0f);
-    hit.normal[axis] = sign;
-  };
-  for (const Box& b : walls_) test(b);
-  // Seafloor plane.
-  if (dir.y < -1e-6f) {
+    hit.normal[hitAxis] = hitSign;
+  }
+  if (dir.y < 0.0f) {
     float t = (kFloorY - from.y) / dir.y;
     if (t > 0.0f && t < best) {
-      best = t;
       found = true;
       hit.t = t;
       hit.pos = from + dir * t;
