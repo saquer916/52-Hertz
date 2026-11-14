@@ -173,6 +173,7 @@ std::string shotName(const std::string& base, int frame) {
 struct WindowState {
   bool captured = true;
   bool restart = false;
+  bool echoTapped = false;
   bool fullscreen = false;
   int windowedX = 100, windowedY = 100, windowedW = 1280, windowedH = 720;
   double lastX = 0, lastY = 0;
@@ -182,6 +183,7 @@ struct WindowState {
 void keyCallback(GLFWwindow* win, int key, int, int action, int) {
   auto* st = static_cast<WindowState*>(glfwGetWindowUserPointer(win));
   if (action != GLFW_PRESS) return;
+  if (key == GLFW_KEY_SPACE) st->echoTapped = true;
   if (key == GLFW_KEY_ESCAPE) {
     st->captured = false;
     glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -253,7 +255,8 @@ static void runFrame(void* arg) {
   in.boost = glfwGetKey(win, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(win, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ||
              glfwGetKey(win, GLFW_KEY_UP) == GLFW_PRESS;
   in.slow = glfwGetKey(win, GLFW_KEY_S) == GLFW_PRESS || glfwGetKey(win, GLFW_KEY_DOWN) == GLFW_PRESS;
-  in.echo = glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS;
+  in.echo = glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS || st.echoTapped;
+  st.echoTapped = false;
   in.restart = st.restart;
   st.restart = false;
 
