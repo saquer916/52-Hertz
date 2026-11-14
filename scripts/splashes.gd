@@ -1,13 +1,13 @@
 extends Node
 ## When the whale (this node's parent) breaks the surface, going up or coming
-## back down, spray bursts out and the ocean heaves and ripples outward from
-## that spot. Faster through the surface = bigger splash.
+## back down, a splash of spray bursts out at that spot. Faster through the
+## surface = bigger splash.
 
 const SPLASH := preload("res://scenes/splash.tscn")
 
-## Slower than this (vertical m/s) and the whale slips through without a ripple.
+## Slower than this (vertical m/s) and the whale slips through without a splash.
 @export var min_speed := 1.5
-## Seconds before another impact can happen (stops spam while skimming the surface).
+## Seconds before another splash can happen (stops spam while skimming the surface).
 @export var cooldown := 0.6
 
 var _ready_at := 0.0
@@ -28,9 +28,6 @@ func _on_cross_surface() -> void:
 	_ready_at = now + cooldown
 	var strength := clampf(vertical_speed / 10.0, 0.3, 1.5)
 	var where := Vector3(whale.global_position.x, whale.water_level, whale.global_position.z)
-	var ocean := get_tree().get_first_node_in_group("ocean")
-	if ocean:
-		ocean.add_impact(where, strength)
 	var splash := SPLASH.instantiate()
 	get_tree().current_scene.add_child(splash)
 	splash.global_position = where

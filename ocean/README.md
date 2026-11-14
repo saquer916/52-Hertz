@@ -12,8 +12,6 @@ Changes for 52 Hertz:
   under the active camera (logic taken from upstream `main.gd`).
 - Fixed for Godot 4.7: exact-size push constants (`render_context.gd`) and a
   non-`readonly` spectrum image (`spectrum_modulate.glsl`).
-- `water.gdshader` has impact ripples added: `ocean.gd`'s `add_impact()` makes
-  the surface heave and send rings outward (used when the whale breaks the surface).
 
 Requirements: the Forward+ renderer (it uses compute shaders) and the
 `[shader_globals]` entries in `project.godot`.
