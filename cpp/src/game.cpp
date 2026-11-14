@@ -218,6 +218,7 @@ void Game::updateWhale(float dt, const InputState& in) {
   float target = Whale::kCruise;
   if (in.boost) target = Whale::kBoost;
   else if (in.slow) target = Whale::kSlow;
+  if (w.underwater && w.pos.y > kBreathLine) target = Whale::kSlow;
   w.speed = moveToward(w.speed, target, 6.0f * dt);
 
   float t = 1.0f - std::exp(-kTurnResponsiveness * dt);
