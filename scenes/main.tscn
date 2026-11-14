@@ -1,0 +1,60 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sky/evening_road_01_puresky.png" id="1_sky"]
+[ext_resource type="PackedScene" path="res://ocean/ocean.tscn" id="2_ocean"]
+
+[sub_resource type="PanoramaSkyMaterial" id="SkyMaterial"]
+panorama = ExtResource("1_sky")
+
+[sub_resource type="Sky" id="Sky"]
+sky_material = SubResource("SkyMaterial")
+
+[sub_resource type="Environment" id="Environment"]
+background_mode = 2
+sky = SubResource("Sky")
+tonemap_mode = 2
+glow_enabled = true
+fog_mode = 1
+fog_light_color = Color(0.272954, 0.419272, 0.484632, 1)
+fog_sun_scatter = 0.05
+fog_density = 1.0
+fog_aerial_perspective = 0.626
+fog_sky_affect = 0.0
+fog_depth_curve = 0.25
+fog_depth_begin = 200.0
+fog_depth_end = 350.0
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.0
+volumetric_fog_length = 256.0
+adjustment_enabled = true
+adjustment_brightness = 0.85
+adjustment_contrast = 1.07
+adjustment_saturation = 1.5
+
+[sub_resource type="FogMaterial" id="SeaMist"]
+density = 8.0
+albedo = Color(0.988718, 0.989631, 0.989629, 1)
+height_falloff = 0.176
+edge_fade = 1.75
+
+[node name="Main" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.945601, -0.0516921, 0.321197, -0.00840572, 0.983084, 0.18296, -0.325221, -0.175707, 0.929171, 0, 10, 0)
+shadow_enabled = true
+shadow_bias = 0.0
+shadow_normal_bias = 6.464
+shadow_opacity = 0.8
+shadow_blur = 5.0
+
+[node name="SeaMist" type="FogVolume" parent="."]
+shape = 4
+material = SubResource("SeaMist")
+
+[node name="Ocean" parent="." instance=ExtResource("2_ocean")]
+
+[node name="PreviewCamera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.984808, 0.173648, 0, -0.173648, 0.984808, 0, 8, 0)

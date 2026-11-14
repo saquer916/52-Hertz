@@ -1,0 +1,9 @@
+# Godot cache (regenerated on import)
+.godot/
+
+# Exported builds. Upload the zips to itch.io; don't commit them.
+/build/
+
+# Paid or restricted assets that can't be shared in a public repo.
+# They still get packed into the exported game builds.
+/assets/licensed/

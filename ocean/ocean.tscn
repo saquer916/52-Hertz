@@ -1,0 +1,88 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ocean/ocean.gd" id="1_ocean"]
+[ext_resource type="Script" path="res://ocean/water.gd" id="2_water"]
+[ext_resource type="Script" path="res://ocean/wave_cascade_parameters.gd" id="3_params"]
+[ext_resource type="Material" path="res://ocean/mat_water.tres" id="4_matwater"]
+[ext_resource type="ArrayMesh" path="res://ocean/clipmap_high.obj" id="5_clipmap"]
+[ext_resource type="Shader" path="res://ocean/shaders/spatial/sea_spray.gdshader" id="6_sprayshader"]
+[ext_resource type="Material" path="res://ocean/mat_spray.tres" id="7_matspray"]
+[ext_resource type="Texture2D" path="res://ocean/sea_spray.png" id="8_spraytex"]
+
+[sub_resource type="Resource" id="Cascade_swell"]
+script = ExtResource("3_params")
+tile_length = Vector2(88, 88)
+displacement_scale = 1.0
+normal_scale = 1.0
+wind_speed = 10.0
+wind_direction = 20.0
+fetch_length = 150.0
+swell = 0.8
+spread = 0.2
+detail = 1.0
+whitecap = 0.5
+foam_amount = 8.0
+
+[sub_resource type="Resource" id="Cascade_chop"]
+script = ExtResource("3_params")
+tile_length = Vector2(57, 57)
+displacement_scale = 0.75
+normal_scale = 1.0
+wind_speed = 5.0
+wind_direction = 15.0
+fetch_length = 150.0
+swell = 0.8
+spread = 0.4
+detail = 1.0
+whitecap = 0.5
+foam_amount = 0.0
+
+[sub_resource type="Resource" id="Cascade_ripples"]
+script = ExtResource("3_params")
+tile_length = Vector2(16, 16)
+displacement_scale = 0.0
+normal_scale = 0.25
+wind_speed = 20.0
+wind_direction = 20.0
+fetch_length = 550.0
+swell = 0.8
+spread = 0.4
+detail = 1.0
+whitecap = 0.25
+foam_amount = 3.0
+
+[sub_resource type="FastNoiseLite" id="SprayNoise"]
+
+[sub_resource type="NoiseTexture2D" id="SprayNoiseTexture"]
+seamless = true
+noise = SubResource("SprayNoise")
+
+[sub_resource type="ShaderMaterial" id="SprayDrawMaterial"]
+render_priority = 0
+shader = ExtResource("6_sprayshader")
+shader_parameter/max_alpha = 0.666
+shader_parameter/albedo_texture = ExtResource("8_spraytex")
+shader_parameter/dissolve_texture = SubResource("SprayNoiseTexture")
+
+[sub_resource type="QuadMesh" id="SprayQuad"]
+
+[node name="Ocean" type="Node3D"]
+script = ExtResource("1_ocean")
+
+[node name="Water" type="MeshInstance3D" parent="."]
+sorting_offset = 999.0
+material_override = ExtResource("4_matwater")
+cast_shadow = 0
+mesh = ExtResource("5_clipmap")
+skeleton = NodePath("")
+script = ExtResource("2_water")
+parameters = Array[ExtResource("3_params")]([SubResource("Cascade_swell"), SubResource("Cascade_chop"), SubResource("Cascade_ripples")])
+
+[node name="WaterSprayEmitter" type="GPUParticles3D" parent="Water"]
+transform = Transform3D(15, 0, 0, 0, 15, 0, 0, 0, 15, 0, 0, 0)
+material_override = SubResource("SprayDrawMaterial")
+cast_shadow = 0
+amount = 32768
+lifetime = 6.0
+process_material = ExtResource("7_matspray")
+draw_pass_1 = SubResource("SprayQuad")
