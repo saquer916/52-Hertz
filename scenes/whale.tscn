@@ -1,0 +1,41 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/whale.gd" id="1_whale"]
+[ext_resource type="Script" path="res://scripts/chase_camera.gd" id="3_camera"]
+
+[sub_resource type="CapsuleShape3D" id="BodyShape"]
+radius = 1.6
+height = 11.0
+
+[sub_resource type="StandardMaterial3D" id="PlaceholderSkin"]
+albedo_color = Color(0.22, 0.27, 0.32, 1)
+roughness = 0.4
+
+[sub_resource type="CapsuleMesh" id="PlaceholderMesh"]
+material = SubResource("PlaceholderSkin")
+radius = 1.6
+height = 11.0
+
+[node name="Whale" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 1
+motion_mode = 1
+script = ExtResource("1_whale")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
+shape = SubResource("BodyShape")
+
+[node name="Model" type="Node3D" parent="."]
+
+[node name="PlaceholderBody" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
+mesh = SubResource("PlaceholderMesh")
+
+[node name="Echolocation" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5)
+
+[node name="ChaseCamera" type="Camera3D" parent="."]
+top_level = true
+current = true
+script = ExtResource("3_camera")
