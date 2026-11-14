@@ -3,10 +3,11 @@
 [ext_resource type="Script" uid="uid://blksg1xuydfbb" path="res://scripts/whale.gd" id="1_whale"]
 [ext_resource type="Script" uid="uid://caif2hv1g1fx6" path="res://scenes/echolocation.gd" id="2_upqel"]
 [ext_resource type="Script" uid="uid://b2kt61os643r6" path="res://scripts/chase_camera.gd" id="3_camera"]
-[ext_resource type="PackedScene" path="res://assets/models/humpback_whale/scene.gltf" id="4_humpback"]
-[ext_resource type="Script" path="res://scripts/swim_motion.gd" id="5_swim"]
-[ext_resource type="Script" path="res://scripts/underwater_view.gd" id="6_underwater"]
-[ext_resource type="Script" path="res://scripts/splashes.gd" id="7_splashes"]
+[ext_resource type="PackedScene" uid="uid://bqrqae0hx54fu" path="res://assets/models/humpback_whale/scene.gltf" id="4_humpback"]
+[ext_resource type="Script" uid="uid://cu6bf4rfhds6u" path="res://scripts/swim_motion.gd" id="5_swim"]
+[ext_resource type="Script" uid="uid://dxoqvqsw2q6sc" path="res://scripts/underwater_view.gd" id="6_underwater"]
+[ext_resource type="Script" uid="uid://drnva1yw2g8bf" path="res://scripts/splashes.gd" id="7_splashes"]
+[ext_resource type="Script" uid="uid://ce4clp8go7i16" path="res://scenes/breath.gd" id="8_xmxk4"]
 
 [sub_resource type="CapsuleShape3D" id="BodyShape"]
 radius = 1.4
@@ -24,10 +25,10 @@ shape = SubResource("BodyShape")
 [node name="Model" type="Node3D" parent="." unique_id=1699720965]
 script = ExtResource("5_swim")
 
-[node name="Humpback" parent="Model" instance=ExtResource("4_humpback")]
+[node name="Humpback" parent="Model" unique_id=692866908 instance=ExtResource("4_humpback")]
 transform = Transform3D(0, 0, -0.50578, 0, 0.50578, 0, 0.50578, 0, 0, 0, -1.77, 1.0116)
 
-[node name="WhaleLight" type="OmniLight3D" parent="."]
+[node name="WhaleLight" type="OmniLight3D" parent="." unique_id=2106479494]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 9, 8)
 light_color = Color(0.75, 0.85, 1, 1)
 light_energy = 0.6
@@ -45,8 +46,23 @@ script = ExtResource("3_camera")
 distance = 12.0
 height = 3.5
 
-[node name="UnderwaterView" type="Node" parent="ChaseCamera"]
+[node name="UnderwaterView" type="Node" parent="ChaseCamera" unique_id=1552939928]
 script = ExtResource("6_underwater")
 
-[node name="Splashes" type="Node" parent="."]
+[node name="Splashes" type="Node" parent="." unique_id=1401946474]
 script = ExtResource("7_splashes")
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1586383322]
+
+[node name="BreathBar" type="ProgressBar" parent="HUD" unique_id=1007116588]
+custom_minimum_size = Vector2(300, 16)
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -27.0
+offset_right = 4.0
+grow_vertical = 0
+
+[node name="Breath" type="Node" parent="." unique_id=743567907 node_paths=PackedStringArray("bar")]
+script = ExtResource("8_xmxk4")
+bar = NodePath("../HUD/BreathBar")
