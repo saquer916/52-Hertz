@@ -34,6 +34,19 @@ varying float wave_height;
 varying float foam_factor;
 varying float fresnel;
 
+/** Cheap smooth value noise (0..1), used to break impact foam into lacy whitewater. */
+float hash21(vec2 p) {
+	p = fract(p * vec2(123.34, 456.21));
+	p += dot(p, p + 45.32);
+	return fract(p.x * p.y);
+}
+float value_noise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash21(i), hash21(i + vec2(1.0, 0.0)), u.x), mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
 /** Height of the impact ripples at a world x/z position. */
 float ripple_height(vec2 p, out float foam) {
 	float height = 0.0;
@@ -51,8 +64,12 @@ float ripple_height(vec2 p, out float foam) {
 		float envelope = (x > 0.0 ? exp(-x * x / 4.0) : exp(x / (3.0 + age * 1.5))) * exp(-age * 0.45) / (1.0 + d * 0.04);
 		float wave = sin(TAU * x / ripple_wavelength);
 		height += impact.w * settle * (heave + 1.1 * envelope * wave);
-		// Foam only on the ring crests, plus a small patch where the whale hit.
-		foam += impact.w * settle * (0.35 * envelope * max(wave, 0.0) + 0.8 * exp(-age * 0.9) * exp(-d * d / 25.0));
+		// Whitewater: a churned patch where the whale hit, streaking outward with the
+		// rings (like the radial streaks of a real splash), plus foam on the ring crests.
+		vec2 dp = p - impact.xy;
+		float streaks = value_noise(vec2(atan(dp.y, dp.x) * 10.0, d * 0.3 - age * 2.0));
+		float churn = 1.1 * exp(-age * 0.7) * exp(-d * d / (30.0 + age * 40.0));
+		foam += impact.w * settle * (churn * mix(0.35, 1.5, streaks) + 0.45 * envelope * max(wave, 0.0) * streaks);
 	}
 	return height;
 }
@@ -127,7 +144,9 @@ void fragment() {
 	float ripple = ripple_height(UV, ripple_foam);
 	const float STEP = 0.2;
 	vec2 ripple_slope = vec2(ripple_height(UV + vec2(STEP, 0.0), foam_unused) - ripple, ripple_height(UV + vec2(0.0, STEP), foam_unused) - ripple) / STEP;
-	foam_factor = max(foam_factor, clamp(ripple_foam, 0.0, 1.0));
+	// Break the foam into lace: solid where it's thick, patchy at the edges.
+	float lace = value_noise(UV * 0.8) * 0.5 + value_noise(UV * 2.1) * 0.3 + value_noise(UV * 5.3) * 0.2;
+	foam_factor = max(foam_factor, smoothstep(0.2, 0.85, ripple_foam * (0.3 + lace)));
 	ALBEDO = mix(water_color.rgb, foam_color.rgb, foam_factor);
 
 	gradient *= mix(0.015, normal_strength, exp(-dist*0.0175)); // Blend normal with terrain normal as distance increases.

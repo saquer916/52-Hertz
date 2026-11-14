@@ -1,0 +1,182 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/splash.gd" id="1_splash"]
+
+[sub_resource type="Gradient" id="SoftDot"]
+offsets = PackedFloat32Array(0, 0.45, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.6, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="SoftDotTexture"]
+gradient = SubResource("SoftDot")
+width = 32
+height = 64
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="StreakMaterial"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.93, 0.97, 1, 1)
+albedo_texture = SubResource("SoftDotTexture")
+billboard_mode = 2
+billboard_keep_scale = true
+proximity_fade_enabled = true
+proximity_fade_distance = 0.8
+
+[sub_resource type="StandardMaterial3D" id="DropletMaterial"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.93, 0.97, 1, 1)
+albedo_texture = SubResource("SoftDotTexture")
+billboard_mode = 3
+billboard_keep_scale = true
+proximity_fade_enabled = true
+proximity_fade_distance = 0.8
+
+[sub_resource type="StandardMaterial3D" id="MistMaterial"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.86, 0.92, 0.96, 1)
+albedo_texture = SubResource("SoftDotTexture")
+billboard_mode = 3
+billboard_keep_scale = true
+proximity_fade_enabled = true
+proximity_fade_distance = 3.0
+
+[sub_resource type="QuadMesh" id="StreakQuad"]
+material = SubResource("StreakMaterial")
+size = Vector2(0.14, 1.1)
+
+[sub_resource type="QuadMesh" id="DropletQuad"]
+material = SubResource("DropletMaterial")
+size = Vector2(0.18, 0.18)
+
+[sub_resource type="QuadMesh" id="MistQuad"]
+material = SubResource("MistMaterial")
+size = Vector2(1, 1)
+
+[sub_resource type="Gradient" id="SprayFade"]
+offsets = PackedFloat32Array(0, 0.7, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.75, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="SprayFadeRamp"]
+gradient = SubResource("SprayFade")
+
+[sub_resource type="Gradient" id="MistFade"]
+offsets = PackedFloat32Array(0, 0.15, 1)
+colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 0.14, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="MistFadeRamp"]
+gradient = SubResource("MistFade")
+
+[sub_resource type="Curve" id="Shrink"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.35), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="ShrinkTexture"]
+curve = SubResource("Shrink")
+
+[sub_resource type="Curve" id="Billow"]
+_data = [Vector2(0, 0.4), 0.0, 0.0, 0, 0, Vector2(1, 1.5), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="BillowTexture"]
+curve = SubResource("Billow")
+
+[sub_resource type="ParticleProcessMaterial" id="CrownMotion"]
+particle_flag_align_y = true
+emission_shape = 6
+emission_ring_axis = Vector3(0, 1, 0)
+emission_ring_height = 0.6
+emission_ring_radius = 3.5
+emission_ring_inner_radius = 0.8
+direction = Vector3(0, 1, 0)
+spread = 38.0
+initial_velocity_min = 5.0
+initial_velocity_max = 15.0
+radial_velocity_min = 2.0
+radial_velocity_max = 9.0
+gravity = Vector3(0, -9.8, 0)
+damping_min = 0.2
+damping_max = 1.0
+scale_min = 0.5
+scale_max = 1.5
+scale_curve = SubResource("ShrinkTexture")
+color_ramp = SubResource("SprayFadeRamp")
+
+[sub_resource type="ParticleProcessMaterial" id="DropletMotion"]
+emission_shape = 6
+emission_ring_axis = Vector3(0, 1, 0)
+emission_ring_height = 0.6
+emission_ring_radius = 4.0
+emission_ring_inner_radius = 0.5
+direction = Vector3(0, 1, 0)
+spread = 60.0
+initial_velocity_min = 3.0
+initial_velocity_max = 12.0
+radial_velocity_min = 3.0
+radial_velocity_max = 11.0
+gravity = Vector3(0, -9.8, 0)
+damping_min = 0.3
+damping_max = 1.2
+scale_min = 0.4
+scale_max = 1.6
+scale_curve = SubResource("ShrinkTexture")
+color_ramp = SubResource("SprayFadeRamp")
+
+[sub_resource type="ParticleProcessMaterial" id="MistMotion"]
+emission_shape = 1
+emission_sphere_radius = 3.5
+direction = Vector3(0, 1, 0)
+spread = 70.0
+initial_velocity_min = 1.0
+initial_velocity_max = 4.0
+radial_velocity_min = 1.0
+radial_velocity_max = 3.0
+gravity = Vector3(0, -0.6, 0)
+damping_min = 1.0
+damping_max = 2.0
+scale_min = 2.5
+scale_max = 5.5
+scale_curve = SubResource("BillowTexture")
+color_ramp = SubResource("MistFadeRamp")
+
+[node name="Splash" type="Node3D"]
+script = ExtResource("1_splash")
+
+[node name="Crown" type="GPUParticles3D" parent="."]
+emitting = false
+amount = 1400
+lifetime = 2.0
+one_shot = true
+explosiveness = 0.92
+randomness = 0.5
+visibility_aabb = AABB(-30, -10, -30, 60, 45, 60)
+process_material = SubResource("CrownMotion")
+draw_pass_1 = SubResource("StreakQuad")
+
+[node name="Droplets" type="GPUParticles3D" parent="."]
+emitting = false
+amount = 700
+lifetime = 2.4
+one_shot = true
+explosiveness = 0.85
+randomness = 0.5
+visibility_aabb = AABB(-30, -10, -30, 60, 40, 60)
+process_material = SubResource("DropletMotion")
+draw_pass_1 = SubResource("DropletQuad")
+
+[node name="Mist" type="GPUParticles3D" parent="."]
+emitting = false
+amount = 36
+lifetime = 2.6
+one_shot = true
+explosiveness = 0.8
+randomness = 0.4
+visibility_aabb = AABB(-30, -10, -30, 60, 40, 60)
+process_material = SubResource("MistMotion")
+draw_pass_1 = SubResource("MistQuad")
