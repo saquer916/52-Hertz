@@ -60,7 +60,7 @@ void Game::updateBreath(float dt) {
     if (breath_ > 1) breath_ = 1;
   }
   else {
-    breath_ -= dt / kBreathSeconds;
+    breath_ -= dt / kBreathSeconds * std::max(1.0f, whale_.speed / Whale::kCruise);
     if (breath_ <= 0) startBounceBack();
   }
 }
