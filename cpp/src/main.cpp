@@ -17,6 +17,10 @@
 #include "gl.h"
 #include "stb_image_write.h"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 namespace {
 
 struct Options {
@@ -221,6 +225,70 @@ void mouseButtonCallback(GLFWwindow* win, int, int action, int) {
 
 }  // namespace
 
+// One frame of the game in a window: input, update, draw. The desktop calls it in a
+// loop; a browser calls it once per animation frame (see main()).
+struct FrameContext {
+  GLFWwindow* win;
+  Game* game;
+  WindowState* st;
+  std::chrono::steady_clock::time_point last = std::chrono::steady_clock::now();
+  double fpsTimer = 0.0;
+  int fpsFrames = 0;
+};
+
+static void runFrame(void* arg) {
+  FrameContext& c = *static_cast<FrameContext*>(arg);
+  GLFWwindow* win = c.win;
+  Game& game = *c.game;
+  WindowState& st = *c.st;
+  int fbw = 0, fbh = 0;
+  glfwPollEvents();
+  auto now = std::chrono::steady_clock::now();
+  float dt = std::chrono::duration<float>(now - c.last).count();
+  c.last = now;
+  dt = std::min(dt, 1.0f / 20.0f);
+
+  InputState in;
+  double mx, my;
+  glfwGetCursorPos(win, &mx, &my);
+  if (st.captured && st.haveLast) {
+    in.mouseDx = (float)(mx - st.lastX);
+    in.mouseDy = (float)(my - st.lastY);
+  }
+  st.lastX = mx;
+  st.lastY = my;
+  st.haveLast = true;
+  in.mouseCaptured = st.captured;
+  in.boost = glfwGetKey(win, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(win, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ||
+             glfwGetKey(win, GLFW_KEY_UP) == GLFW_PRESS;
+  in.slow = glfwGetKey(win, GLFW_KEY_S) == GLFW_PRESS || glfwGetKey(win, GLFW_KEY_DOWN) == GLFW_PRESS;
+  in.echo = glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS;
+  in.restart = st.restart;
+  st.restart = false;
+
+  glfwGetFramebufferSize(win, &fbw, &fbh);
+  if (fbw > 0 && fbh > 0) {
+    game.resize(fbw, fbh);
+    game.update(dt, in);
+    game.render();
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, game.output().fbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, game.output().width, game.output().height, 0, 0, fbw, fbh, GL_COLOR_BUFFER_BIT,
+                      GL_NEAREST);
+  }
+  glfwSwapBuffers(win);
+
+  c.fpsTimer += dt;
+  c.fpsFrames++;
+  if (c.fpsTimer >= 1.0) {
+    char title[128];
+    std::snprintf(title, sizeof title, "52 Hertz - %d fps", c.fpsFrames);
+    glfwSetWindowTitle(c.win, title);
+    c.fpsTimer = 0.0;
+    c.fpsFrames = 0;
+  }
+}
+
 // Shared builds keep their assets next to the program, so start there.
 static void startInProgramFolder(const char* argv0) {
 #ifdef PORTABLE_ASSETS
@@ -280,6 +348,11 @@ int main(int argc, char** argv) {
     std::fprintf(stderr, "Could not start GLFW\n");
     return 1;
   }
+#ifdef __EMSCRIPTEN__
+  glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);  // WebGL 2
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+#else
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 #ifdef HERTZ_GL41
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);  // the newest OpenGL macOS has
@@ -289,6 +362,7 @@ int main(int argc, char** argv) {
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+#endif
   if (scripted) glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);  // render offscreen, don't pop up a window
   GLFWwindow* win = glfwCreateWindow(opt.width, opt.height, "52 Hertz", nullptr, nullptr);
   if (!win) {
@@ -309,7 +383,11 @@ int main(int argc, char** argv) {
   glfwSwapInterval(opt.benchmark > 0 ? 0 : 1);
 
   unsigned seed = opt.seed >= 0 ? (unsigned)opt.seed : (scripted ? 7u : std::random_device{}());
+#ifdef __EMSCRIPTEN__
+  static Game game;  // main() never returns in the browser
+#else
   Game game;
+#endif
   int fbw, fbh;
   glfwGetFramebufferSize(win, &fbw, &fbh);
   if (scripted) fbw = opt.width, fbh = opt.height;  // render offscreen at the requested size
@@ -343,63 +421,32 @@ int main(int argc, char** argv) {
     return 0;
   }
 
+#ifdef __EMSCRIPTEN__
+  static WindowState st;
+#else
   WindowState st;
+#endif
   glfwSetWindowUserPointer(win, &st);
   glfwSetKeyCallback(win, keyCallback);
   glfwSetMouseButtonCallback(win, mouseButtonCallback);
+#ifdef __EMSCRIPTEN__
+  st.captured = false;  // browsers only lock the mouse after a click ("Click to swim")
+#else
   glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   if (glfwRawMouseMotionSupported()) glfwSetInputMode(win, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+#endif
 
-  auto last = std::chrono::steady_clock::now();
-  double fpsTimer = 0.0;
-  int fpsFrames = 0;
-  while (!glfwWindowShouldClose(win)) {
-    glfwPollEvents();
-    auto now = std::chrono::steady_clock::now();
-    float dt = std::chrono::duration<float>(now - last).count();
-    last = now;
-    dt = std::min(dt, 1.0f / 20.0f);
-
-    InputState in;
-    double mx, my;
-    glfwGetCursorPos(win, &mx, &my);
-    if (st.captured && st.haveLast) {
-      in.mouseDx = (float)(mx - st.lastX);
-      in.mouseDy = (float)(my - st.lastY);
-    }
-    st.lastX = mx;
-    st.lastY = my;
-    st.haveLast = true;
-    in.mouseCaptured = st.captured;
-    in.boost = glfwGetKey(win, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(win, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ||
-               glfwGetKey(win, GLFW_KEY_UP) == GLFW_PRESS;
-    in.slow = glfwGetKey(win, GLFW_KEY_S) == GLFW_PRESS || glfwGetKey(win, GLFW_KEY_DOWN) == GLFW_PRESS;
-    in.echo = glfwGetKey(win, GLFW_KEY_SPACE) == GLFW_PRESS;
-    in.restart = st.restart;
-    st.restart = false;
-
-    glfwGetFramebufferSize(win, &fbw, &fbh);
-    if (fbw > 0 && fbh > 0) {
-      game.resize(fbw, fbh);
-      game.update(dt, in);
-      game.render();
-      glBindFramebuffer(GL_READ_FRAMEBUFFER, game.output().fbo);
-      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-      glBlitFramebuffer(0, 0, game.output().width, game.output().height, 0, 0, fbw, fbh, GL_COLOR_BUFFER_BIT,
-                        GL_NEAREST);
-    }
-    glfwSwapBuffers(win);
-
-    fpsTimer += dt;
-    fpsFrames++;
-    if (fpsTimer >= 1.0) {
-      char title[128];
-      std::snprintf(title, sizeof title, "52 Hertz - %d fps", fpsFrames);
-      glfwSetWindowTitle(win, title);
-      fpsTimer = 0.0;
-      fpsFrames = 0;
-    }
-  }
+#ifdef __EMSCRIPTEN__
+  static FrameContext ctx{win, &game, &st};  // must outlive main() in the browser
+#else
+  FrameContext ctx{win, &game, &st};
+#endif
+#ifdef __EMSCRIPTEN__
+  // The browser drives the frames; main() never returns, so the game stays alive.
+  emscripten_set_main_loop_arg(runFrame, &ctx, 0, true);
+#else
+  while (!glfwWindowShouldClose(win)) runFrame(&ctx);
+#endif
   glfwDestroyWindow(win);
   glfwTerminate();
   return 0;

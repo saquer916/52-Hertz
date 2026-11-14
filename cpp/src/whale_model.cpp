@@ -11,6 +11,12 @@
 #include "cgltf.h"
 #include "render_util.h"
 
+#ifdef __EMSCRIPTEN__
+static constexpr std::launch kDecodeLaunch = std::launch::deferred;  // no threads in the browser
+#else
+static constexpr std::launch kDecodeLaunch = std::launch::async;
+#endif
+
 namespace {
 
 const char* kWhaleVS = R"GLSL(
@@ -179,9 +185,9 @@ glm::mat4 WhaleModel::fileToWhale() {
 
 bool WhaleModel::load(const std::string& dir) {
   // Decode the three 4K textures on other threads while we parse the mesh.
-  auto baseF = std::async(std::launch::async, decodePNG, dir + "/textures/StingrayPBS1_baseColor.png", 2048);
-  auto normF = std::async(std::launch::async, decodePNG, dir + "/textures/StingrayPBS1_normal.png", 2048);
-  auto ormF = std::async(std::launch::async, decodePNG, dir + "/textures/StingrayPBS1_metallicRoughness.png", 2048);
+  auto baseF = std::async(kDecodeLaunch, decodePNG, dir + "/textures/StingrayPBS1_baseColor.png", 2048);
+  auto normF = std::async(kDecodeLaunch, decodePNG, dir + "/textures/StingrayPBS1_normal.png", 2048);
+  auto ormF = std::async(kDecodeLaunch, decodePNG, dir + "/textures/StingrayPBS1_metallicRoughness.png", 2048);
 
   std::string path = dir + "/scene.gltf";
   cgltf_options opt{};

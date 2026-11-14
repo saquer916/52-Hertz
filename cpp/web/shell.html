@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>52 Hertz</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #02080c; color: #cfe8f2; font-family: system-ui, sans-serif; overflow: hidden; }
+  #canvas { display: block; width: 100vw; height: 100vh; outline: none; }
+  #status { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; pointer-events: none; }
+  #status h1 { margin: 0; font-weight: 600; letter-spacing: 0.2em; }
+  #status p { margin: 0; opacity: 0.7; }
+</style>
+</head>
+<body>
+<canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+<div id="status"><h1>52 HERTZ</h1><p id="status-text">Loading the ocean...</p></div>
+<script>
+  var canvas = document.getElementById('canvas');
+  function fit() {
+    var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    canvas.width = Math.round(window.innerWidth * dpr);
+    canvas.height = Math.round(window.innerHeight * dpr);
+  }
+  window.addEventListener('resize', fit);
+  fit();
+  var Module = {
+    canvas: canvas,
+    setStatus: function (text) {
+      var el = document.getElementById('status');
+      if (!text) { el.style.display = 'none'; return; }
+      document.getElementById('status-text').textContent = text.replace(/\(.*\)/, '').trim() || 'Loading...';
+    },
+    onRuntimeInitialized: function () { canvas.focus(); },
+    print: function (t) { console.log(t); },
+    printErr: function (t) { console.warn(t); }
+  };
+  canvas.addEventListener('click', function () { canvas.focus(); });
+  window.addEventListener('keydown', function (e) { if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault(); });
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>

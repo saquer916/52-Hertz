@@ -17,10 +17,11 @@ if(PORTABLE)
 endif()
 
 # GLFW and glm: use the system copies when installed, otherwise fetch them.
-if(NOT PORTABLE)
+# (In the browser, Emscripten provides GLFW itself.)
+if(NOT PORTABLE AND NOT EMSCRIPTEN)
   find_package(glfw3 3.3 QUIET)
 endif()
-if(NOT glfw3_FOUND)
+if(NOT glfw3_FOUND AND NOT EMSCRIPTEN)
   message(STATUS "GLFW not found on the system, fetching it")
   set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
   set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -54,7 +55,11 @@ add_executable(52hertz
   src/third_party_impl.cpp
 )
 target_include_directories(52hertz PRIVATE src third_party)
-target_link_libraries(52hertz PRIVATE glfw glm::glm)
+if(EMSCRIPTEN)
+  target_link_libraries(52hertz PRIVATE glm::glm)
+else()
+  target_link_libraries(52hertz PRIVATE glfw glm::glm)
+endif()
 target_compile_definitions(52hertz PRIVATE
   GLFW_INCLUDE_NONE
   GLM_FORCE_DEPTH_ZERO_TO_ONE)
@@ -68,7 +73,18 @@ endif()
 if(ESSL OR EMSCRIPTEN)
   target_compile_definitions(52hertz PRIVATE HERTZ_ES)
 endif()
-if(PORTABLE)
+if(EMSCRIPTEN)
+  # Browser build: 52hertz.html + .js + .wasm + .data (the whale, preloaded into memory).
+  set_target_properties(52hertz PROPERTIES SUFFIX ".html")
+  target_compile_definitions(52hertz PRIVATE ASSET_DIR="assets")
+  target_link_options(52hertz PRIVATE
+    -sUSE_GLFW=3 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES3=1
+    -sGL_ENABLE_GET_PROC_ADDRESS=1 -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=256MB
+    --profiling-funcs -sASSERTIONS=1
+    --preload-file ${CMAKE_CURRENT_SOURCE_DIR}/../assets/models/humpback_whale@/assets/humpback_whale
+    --exclude-file *.import
+    --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html)
+elseif(PORTABLE)
   target_compile_definitions(52hertz PRIVATE ASSET_DIR="assets" PORTABLE_ASSETS)
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_link_options(52hertz PRIVATE -static-libstdc++ -static-libgcc)
@@ -79,5 +95,7 @@ endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   target_compile_options(52hertz PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers)
 endif()
-find_package(Threads REQUIRED)
-target_link_libraries(52hertz PRIVATE Threads::Threads)
+if(NOT EMSCRIPTEN)  # the browser build has no threads
+  find_package(Threads REQUIRED)
+  target_link_libraries(52hertz PRIVATE Threads::Threads)
+endif()

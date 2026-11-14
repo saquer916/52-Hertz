@@ -79,7 +79,9 @@ glm::mat4 Whale::modelMatrix() const {
 }
 
 bool Game::init(int w, int h, unsigned seed) {
+#ifndef HERTZ_GL41  // macOS (OpenGL 4.1) and browsers have no clip control
   glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+#endif
   initFrameBlock();
   initNoiseTexture();
   if (!whaleModel_.load(ASSET_DIR "/humpback_whale")) return false;
