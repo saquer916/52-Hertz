@@ -2,7 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://b2tpxiwat8dd0" path="res://assets/sky/evening_road_01_puresky.png" id="1_sky"]
 [ext_resource type="PackedScene" path="res://ocean/ocean.tscn" id="2_ocean"]
-[ext_resource type="PackedScene" path="res://scenes/whale.tscn" id="3_sugp2"]
+[ext_resource type="PackedScene" uid="uid://pybtvyqdgwna" path="res://scenes/whale.tscn" id="3_sugp2"]
 [ext_resource type="PackedScene" path="res://scenes/level_1.tscn" id="4_level1"]
 
 [sub_resource type="PanoramaSkyMaterial" id="SkyMaterial"]
@@ -58,7 +58,7 @@ material = SubResource("SeaMist")
 
 [node name="Ocean" parent="." unique_id=2126708483 instance=ExtResource("2_ocean")]
 
-[node name="Level1" parent="." instance=ExtResource("4_level1")]
+[node name="Level1" parent="." unique_id=2078632711 instance=ExtResource("4_level1")]
 
 [node name="Whale" parent="." unique_id=1144745044 instance=ExtResource("3_sugp2")]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 0, -10, 0)

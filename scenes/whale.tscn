@@ -22,10 +22,6 @@ shape = SubResource("BodyShape")
 
 [node name="Model" type="Node3D" parent="." unique_id=1699720965]
 script = ExtResource("5_swim")
-spine_bones = PackedStringArray("Tail_J1_01", "Tail_J2_02", "Tail_J3_03", "Tail_J4_04", "Tail_J5_05")
-head_bone = "Head_J1_06"
-flipper_bones = PackedStringArray()
-bend_axis = Vector3(0, 0, 1)
 
 [node name="Humpback" parent="Model" instance=ExtResource("4_humpback")]
 transform = Transform3D(0, 0, -0.50578, 0, 0.50578, 0, 0.50578, 0, 0, 0, -1.77, 1.0116)

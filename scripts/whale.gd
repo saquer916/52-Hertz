@@ -1,8 +1,5 @@
 class_name Whale
 extends CharacterBody3D
-## The player. Mouse/trackpad steers and the whale always swims forward.
-## Underwater it moves freely in 3D. Above the surface (y > water_level) it is
-## out of the water; see the TODO in _physics_process for breaching.
 
 signal surfaced
 signal dived
@@ -29,6 +26,8 @@ var target_yaw := 0.0
 var target_pitch := 0.0
 var speed := 0.0
 var is_underwater := true
+## How fast the whale is turning left (+) or right (-), in radians per second.
+var turn_rate := 0.0
 
 @onready var model: Node3D = $Model
 
@@ -82,10 +81,17 @@ func _physics_process(delta: float) -> void:
 	var t := 1.0 - exp(-turn_responsiveness * delta)
 	var previous_yaw := rotation.y
 	rotation.y = lerp_angle(rotation.y, target_yaw, t)
-	rotation.x = lerp_angle(rotation.x, target_pitch, t)
+	if is_underwater:
+		rotation.x = lerp_angle(rotation.x, target_pitch, t)
+	else:
+		# Out of the water the nose follows the arc of the jump.
+		var flight_pitch := atan2(velocity.y, Vector2(velocity.x, velocity.z).length())
+		rotation.x = lerp_angle(rotation.x, flight_pitch, t)
+		var max_pitch := deg_to_rad(max_pitch_degrees)
+		target_pitch = clampf(rotation.x, -max_pitch, max_pitch)
 
 	# Lean into turns (only the model, so the camera stays level).
-	var turn_rate := angle_difference(previous_yaw, rotation.y) / delta
+	turn_rate = angle_difference(previous_yaw, rotation.y) / delta
 	model.rotation.z = lerpf(model.rotation.z, turn_rate * bank_amount, t)
 
 	var was_underwater := is_underwater
@@ -98,10 +104,7 @@ func _physics_process(delta: float) -> void:
 	if is_underwater:
 		velocity = -global_basis.z * speed
 	else:
-		# TODO (your breaching step): out of the water the whale should fly in an
-		# arc and fall back in. Keep velocity.x and velocity.z as they are, and pull
-		# velocity.y down with gravity each frame, e.g. velocity.y -= 9.8 * delta.
-		# Until then it keeps swimming straight, so it can "fly".
+		velocity.y -= 9.8 * delta;
 		velocity = -global_basis.z * speed
 
 	move_and_slide()
