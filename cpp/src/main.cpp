@@ -1,4 +1,3 @@
-// 52 Hertz: a C++/OpenGL rebuild of the Godot game.
 #include <GLFW/glfw3.h>
 
 #include <algorithm>
@@ -24,13 +23,13 @@
 namespace {
 
 struct Options {
-  std::string screenshot;      // write a PNG here and quit
-  int frames = 240;            // ... after this many frames
-  std::vector<int> shots;      // or at each of these frames (out_NNNN.png)
+  std::string screenshot;
+  int frames = 240;
+  std::vector<int> shots;
   std::string scenario = "tour";
   int width = 1280, height = 720;
   long seed = -1;
-  int benchmark = 0;           // frames to time with vsync off
+  int benchmark = 0;
   bool hideHud = false;
 };
 
@@ -47,7 +46,6 @@ void usage() {
       "  --no-hud                hide the HUD\n");
 }
 
-// Scripted input: what the player "does" on each frame of a scenario.
 struct Scenario {
   std::function<void(Game&)> setup;
   std::function<void(int frame, InputState&, Game&)> input;
@@ -66,60 +64,60 @@ Scenario makeScenario(const std::string& name) {
   auto hold = [](int frame, int from, int to) { return frame >= from && frame < to; };
   const float east = -1.5707963f;
 
-  if (name == "echo")  // a long call down a corridor at 14 m
+  if (name == "echo")
     return {[=](Game& g) { place(g, {0, -14, 0}, east, 0.0f); },
             [=](int f, InputState& in, Game&) {
               in.echo = hold(f, 20, 95);
               in.slow = f > 95;
               in.mouseDx = f > 100 && f < 160 ? 1.5f : 0.0f;
             }};
-  if (name == "click")  // a few quick clicks all around
+  if (name == "click")
     return {[=](Game& g) { place(g, {0, -12, 0}, east, 0.0f); },
             [=](int f, InputState& in, Game&) {
               in.echo = hold(f, 10, 13) || hold(f, 70, 73) || hold(f, 130, 133);
               in.slow = true;
             }};
-  if (name == "breach")  // swim up hard and leap out
+  if (name == "breach")
     return {[=](Game& g) { place(g, {0, -14, 0}, east, glm::radians(50.0f)); },
             [=](int f, InputState& in, Game&) {
               in.boost = true;
               in.mouseDy = f < 30 ? -2.0f : 0.0f;
             }};
-  if (name == "surface")  // cruising along the top, looking at the cliffs
+  if (name == "surface")
     return {[=](Game& g) { place(g, {-5, -1.2f, 0}, east, 0.0f); },
             [=](int f, InputState& in, Game&) {
               in.slow = true;
               in.mouseDy = f < 20 ? 1.0f : 0.0f;
             }};
-  if (name == "deep")  // dive to the bottom and call
+  if (name == "deep")
     return {[=](Game& g) { place(g, {0, -20, 0}, east, glm::radians(-45.0f)); },
             [=](int f, InputState& in, Game&) {
               in.mouseDy = f < 60 ? 0.0f : (f < 120 ? -1.2f : 0.0f);
               in.echo = hold(f, 150, 225);
               in.slow = f > 150;
             }};
-  if (name == "pod")  // just past the exit, about to meet the pod
+  if (name == "pod")
     return {[=](Game& g) {
               glm::vec3 p = g.level().exitGap + glm::vec3(0, -2, 20);
               place(g, p, 0.0f, 0.0f);
             },
             [=](int f, InputState& in, Game&) { in.echo = hold(f, 10, 50); }};
-  if (name == "breath")  // run out of air and bounce back
+  if (name == "breath")
     return {[=](Game& g) {
               place(g, {0, -14, 0}, east, 0.0f);
               g.setBreath(0.02f);
             },
             [=](int f, InputState& in, Game&) { in.slow = true; }};
-  if (name == "skim")  // camera right at the waterline
+  if (name == "skim")
     return {[=](Game& g) { place(g, {0, -3.4f, 0}, east, 0.0f); },
             [=](int f, InputState& in, Game&) { in.slow = true; }};
-  if (name == "wall")  // ram the end wall of the first corridor at full speed
+  if (name == "wall")
     return {[=](Game& g) { place(g, {40, -12, 0}, east, 0.0f); },
             [=](int f, InputState& in, Game&) {
               in.boost = true;
               in.echo = hold(f, 250, 254);
             }};
-  if (name == "autopilot")  // swim the shortest route through the maze to the pod
+  if (name == "autopilot")
     return {[=](Game& g) {},
             [=](int f, InputState& in, Game& g) {
               static size_t next = 1;
@@ -133,15 +131,12 @@ Scenario makeScenario(const std::string& name) {
               float want = std::atan2(-to.x, -to.z);
               float diff = std::remainder(want - w.targetYaw, 6.2831853f);
               in.mouseDx = -std::clamp(diff, -0.04f, 0.04f) / 0.0025f;
-              // Hold a cruising depth of about 10 m.
               float pitchWant = std::clamp((-10.0f - w.pos.y) * 0.05f, -0.4f, 0.4f);
               in.mouseDy = -std::clamp(pitchWant - w.targetPitch, -0.02f, 0.02f) / 0.0025f;
               in.boost = std::fabs(diff) < 0.3f;
-              in.echo = f % 300 >= 200 && f % 300 < 272;  // a long call every 5 s
-              // Come up for air now and then.
+              in.echo = f % 300 >= 200 && f % 300 < 272;
               if (g.breath() < 0.35f) in.mouseDy = -std::clamp(0.6f - w.targetPitch, -0.03f, 0.03f) / 0.0025f;
             }};
-  // "tour": swim the first corridor, click, then a long call ahead.
   return {[=](Game& g) { place(g, {0, -8, 0}, east, 0.0f); },
           [=](int f, InputState& in, Game&) {
             in.echo = hold(f, 30, 34) || hold(f, 120, 195);
@@ -156,7 +151,6 @@ void savePNG(const RenderTarget& rt, const std::string& path) {
   glPixelStorei(GL_PACK_ALIGNMENT, 1);
   glReadPixels(0, 0, rt.width, rt.height, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
   glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-  // OpenGL's rows go bottom-up; PNG's go top-down. Also drop alpha.
   std::vector<unsigned char> rgb((size_t)rt.width * rt.height * 3);
   for (int y = 0; y < rt.height; ++y)
     for (int x = 0; x < rt.width; ++x)
@@ -176,7 +170,6 @@ std::string shotName(const std::string& base, int frame) {
   return stem + buf + ext;
 }
 
-// ---- interactive input
 struct WindowState {
   bool captured = true;
   bool restart = false;
@@ -223,10 +216,8 @@ void mouseButtonCallback(GLFWwindow* win, int, int action, int) {
   if (type == GL_DEBUG_TYPE_ERROR) std::fprintf(stderr, "GL error: %s\n", msg);
 }
 
-}  // namespace
+}
 
-// One frame of the game in a window: input, update, draw. The desktop calls it in a
-// loop; a browser calls it once per animation frame (see main()).
 struct FrameContext {
   GLFWwindow* win;
   Game* game;
@@ -289,13 +280,12 @@ static void runFrame(void* arg) {
   }
 }
 
-// Shared builds keep their assets next to the program, so start there.
 static void startInProgramFolder(const char* argv0) {
 #ifdef PORTABLE_ASSETS
   namespace fs = std::filesystem;
   std::error_code ec;
-  fs::path exe = fs::read_symlink("/proc/self/exe", ec);  // Linux
-  if (ec) exe = fs::absolute(argv0, ec);                 // Windows and others
+  fs::path exe = fs::read_symlink("/proc/self/exe", ec);
+  if (ec) exe = fs::absolute(argv0, ec);
   if (!ec) fs::current_path(exe.parent_path(), ec);
 #else
   (void)argv0;
@@ -349,13 +339,13 @@ int main(int argc, char** argv) {
     return 1;
   }
 #ifdef __EMSCRIPTEN__
-  glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);  // WebGL 2
+  glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 #else
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 #ifdef HERTZ_GL41
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);  // the newest OpenGL macOS has
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 #else
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 #endif
@@ -363,7 +353,7 @@ int main(int argc, char** argv) {
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 #endif
-  if (scripted) glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);  // render offscreen, don't pop up a window
+  if (scripted) glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
   GLFWwindow* win = glfwCreateWindow(opt.width, opt.height, "52 Hertz", nullptr, nullptr);
   if (!win) {
     std::fprintf(stderr, "Could not open an OpenGL window (this game needs OpenGL 4.5, or 4.1 on macOS)\n");
@@ -384,13 +374,13 @@ int main(int argc, char** argv) {
 
   unsigned seed = opt.seed >= 0 ? (unsigned)opt.seed : (scripted ? 7u : std::random_device{}());
 #ifdef __EMSCRIPTEN__
-  static Game game;  // main() never returns in the browser
+  static Game game;
 #else
   Game game;
 #endif
   int fbw, fbh;
   glfwGetFramebufferSize(win, &fbw, &fbh);
-  if (scripted) fbw = opt.width, fbh = opt.height;  // render offscreen at the requested size
+  if (scripted) fbw = opt.width, fbh = opt.height;
   if (!game.init(fbw, fbh, seed)) return 1;
   game.setHudVisible(!opt.hideHud);
 
@@ -408,7 +398,7 @@ int main(int argc, char** argv) {
                                      : std::find(opt.shots.begin(), opt.shots.end(), f) != opt.shots.end();
       if (shoot) savePNG(game.output(), opt.shots.empty() ? opt.screenshot : shotName(opt.screenshot, f));
       if (shoot && std::getenv("HERTZ_DUMP_REFLECTION")) savePNG(game.reflection(), shotName(opt.screenshot + ".refl", f));
-      if (opt.benchmark > 0 && f % 50 == 0) glFinish();  // keep the GPU from queueing too far ahead
+      if (opt.benchmark > 0 && f % 50 == 0) glFinish();
     }
     glFinish();
     double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
@@ -430,19 +420,18 @@ int main(int argc, char** argv) {
   glfwSetKeyCallback(win, keyCallback);
   glfwSetMouseButtonCallback(win, mouseButtonCallback);
 #ifdef __EMSCRIPTEN__
-  st.captured = false;  // browsers only lock the mouse after a click ("Click to swim")
+  st.captured = false;
 #else
   glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   if (glfwRawMouseMotionSupported()) glfwSetInputMode(win, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 #endif
 
 #ifdef __EMSCRIPTEN__
-  static FrameContext ctx{win, &game, &st};  // must outlive main() in the browser
+  static FrameContext ctx{win, &game, &st};
 #else
   FrameContext ctx{win, &game, &st};
 #endif
 #ifdef __EMSCRIPTEN__
-  // The browser drives the frames; main() never returns, so the game stays alive.
   emscripten_set_main_loop_arg(runFrame, &ctx, 0, true);
 #else
   while (!glfwWindowShouldClose(win)) runFrame(&ctx);

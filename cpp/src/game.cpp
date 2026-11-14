@@ -12,7 +12,7 @@ namespace {
 constexpr float kMaxPitch = glm::radians(70.0f);
 constexpr float kMouseSensitivity = 0.0025f;
 constexpr float kTurnResponsiveness = 3.0f;
-constexpr float kBreathLine = -3.0f;     // breathing works above this depth
+constexpr float kBreathLine = -3.0f;
 constexpr int kShadowSize = 2048;
 
 const char* kSkyVS = R"GLSL(
@@ -20,7 +20,7 @@ out vec2 vNdc;
 void main() {
   vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2) * 2.0 - 1.0;
   vNdc = p;
-  gl_Position = vec4(p, 0.0, 1.0);  // depth 0 = infinitely far (reversed Z)
+  gl_Position = vec4(p, 0.0, 1.0);
 }
 )GLSL";
 
@@ -34,8 +34,7 @@ void main() {
   if (uWater.w > 0.5) {
     col = applyFog(vec3(0.0), uCamPos.xyz + dir * 1.0e4);
   } else {
-    col = skyColor(dir, uWater.w > -0.5);  // the water adds its own sun glint
-    // Below the horizon (past the edge of the sea mesh) fade into the haze.
+    col = skyColor(dir, uWater.w > -0.5);
     if (dir.y < 0.0) col = mix(col, waterScatter(3.0), smoothstep(0.0, -0.05, dir.y));
   }
   fragColor = vec4(col, 1.0);
@@ -61,7 +60,7 @@ glm::vec3 waterScatterCPU(float depth) {
   return glm::vec3(0.022f, 0.105f, 0.14f) * std::pow(1.0f - k, 2.6f);
 }
 
-}  // namespace
+}
 
 glm::mat3 Whale::basis() const {
   glm::mat4 r = glm::rotate(glm::mat4(1.0f), yaw, glm::vec3(0, 1, 0));
@@ -73,13 +72,13 @@ glm::mat4 Whale::modelMatrix() const {
   glm::mat4 m = glm::translate(glm::mat4(1.0f), pos);
   m = glm::rotate(m, yaw, glm::vec3(0, 1, 0));
   m = glm::rotate(m, pitch, glm::vec3(1, 0, 0));
-  m = glm::rotate(m, bank, glm::vec3(0, 0, 1));  // lean into turns (the model only)
+  m = glm::rotate(m, bank, glm::vec3(0, 0, 1));
   m = glm::translate(m, glm::vec3(0, swim.heave(), 0));
   return m * WhaleModel::fileToWhale();
 }
 
 bool Game::init(int w, int h, unsigned seed) {
-#ifndef HERTZ_GL41  // macOS (OpenGL 4.1) and browsers have no clip control
+#ifndef HERTZ_GL41
   glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 #endif
   initFrameBlock();
@@ -108,7 +107,6 @@ bool Game::init(int w, int h, unsigned seed) {
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowTex_, 0);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-  // Low evening sun, as in the Godot scene (a little higher so the maze is lit).
   sunDir_ = glm::normalize(glm::vec3(0.42f, 0.27f, 0.87f));
   resize(w, h);
   newMaze(seed);
@@ -147,8 +145,6 @@ void Game::message(const std::string& text, float seconds) {
   messageUntil_ = time_ + seconds;
 }
 
-// ------------------------------------------------------------------ update
-
 void Game::update(float dt, const InputState& in) {
   time_ += dt;
   mouseCaptured_ = in.mouseCaptured;
@@ -162,11 +158,11 @@ void Game::update(float dt, const InputState& in) {
     whale_.targetPitch = std::clamp(whale_.targetPitch - in.mouseDy * kMouseSensitivity, -kMaxPitch, kMaxPitch);
   }
 
-  updateEchoInput(dt, in);  // gameplay.cpp
+  updateEchoInput(dt, in);
   updateWhale(dt, in);
-  if (bounceState_ == 0) updateBreath(dt);  // gameplay.cpp
+  if (bounceState_ == 0) updateBreath(dt);
   else updateBounceBack(dt);
-  checkWin();  // gameplay.cpp
+  checkWin();
 
   if (podAnswerAt_ > 0.0f && time_ >= podAnswerAt_) {
     podAnswerAt_ = -1.0f;
@@ -183,7 +179,6 @@ void Game::update(float dt, const InputState& in) {
   effects_.update(dt, time_);
 }
 
-// Engine side of bounce-back: fade out, move the whale to where it last breathed, fade in.
 void Game::startBounceBack() {
   breath_ = 0.0f;
   bounceState_ = 1;
@@ -193,7 +188,6 @@ void Game::startBounceBack() {
 void Game::updateBounceBack(float dt) {
   bounceTimer_ += dt;
   if (bounceState_ == 1 && bounceTimer_ >= 0.9f) {
-    // Out of breath: bounce back to the last place the whale breathed.
     whale_.pos = lastBreathPos_;
     whale_.yaw = whale_.targetYaw = lastBreathYaw_;
     whale_.pitch = whale_.targetPitch = 0.0f;
@@ -226,14 +220,12 @@ void Game::updateWhale(float dt, const InputState& in) {
   else if (in.slow) target = Whale::kSlow;
   w.speed = moveToward(w.speed, target, 6.0f * dt);
 
-  // Ease the body toward where the mouse points, so turns feel heavy.
   float t = 1.0f - std::exp(-kTurnResponsiveness * dt);
   float prevYaw = w.yaw;
   w.yaw = lerpAngle(w.yaw, w.targetYaw, t);
   if (w.underwater) {
     w.pitch = lerpAngle(w.pitch, w.targetPitch, t);
   } else {
-    // Out of the water the nose follows the arc of the jump.
     float flight = std::atan2(w.vel.y, glm::length(glm::vec2(w.vel.x, w.vel.z)));
     w.pitch = lerpAngle(w.pitch, flight, t);
     w.targetPitch = std::clamp(w.pitch, -kMaxPitch, kMaxPitch);
@@ -244,7 +236,6 @@ void Game::updateWhale(float dt, const InputState& in) {
   bool wasUnder = w.underwater;
   w.underwater = w.pos.y < 0.0f;
   if (w.underwater != wasUnder) {
-    // Breaking the surface fast throws up a splash (Godot's splashes.gd).
     float vy = std::fabs(w.vel.y);
     if (vy >= 1.5f && time_ >= splashReadyAt_) {
       splashReadyAt_ = time_ + 0.6f;
@@ -255,9 +246,8 @@ void Game::updateWhale(float dt, const InputState& in) {
     }
   }
 
-  updateVelocity(w, dt);  // gameplay.cpp
+  updateVelocity(w, dt);
 
-  // Move, then push the body (five spheres along its length) out of the rock.
   w.pos += w.vel * dt;
   glm::mat3 b = w.basis();
   for (int iter = 0; iter < 3; ++iter) {
@@ -294,14 +284,12 @@ void Game::castEcho(float hold) {
   int podHits = 0;
   echo_.cast(level_, call, origin, whale_.basis(), time_, pod, &podHits);
   if (podHits > 0 && podAnswerAt_ < time_) {
-    // Someone heard you: the pod answers once the echo has travelled there and back.
     podAnswerAt_ = time_ + glm::distance(origin, level_.goal) / 60.0f + 0.6f;
   }
   effects_.pulse(origin, whale_.forward(), std::min(call.reach, 60.0f + call.strength * 60.0f), call.cone, time_,
                  glm::vec3(0.35f, 0.6f, 0.7f) * (0.25f + 0.2f * call.strength));
 }
 
-// The pod: three whales circling slowly past the maze's exit.
 void Game::podWhale(int i, glm::vec3& pos, float& yaw) const {
   float a = time_ * 0.11f + i * 2.094f;
   float r = 9.0f + 2.5f * i;
@@ -310,14 +298,13 @@ void Game::podWhale(int i, glm::vec3& pos, float& yaw) const {
   yaw = 3.14159265f - a;
 }
 
-
 void Game::render() {
   glm::vec3 up(0, 1, 0);
   glm::mat4 view = glm::lookAt(camPos_, camAim_, up);
   float f = 1.0f / std::tan(glm::radians(75.0f) * 0.5f);
   float aspect = (float)width_ / height_;
   const float nearZ = 0.1f;
-  glm::mat4 proj(0.0f);  // infinite far plane, reversed Z
+  glm::mat4 proj(0.0f);
   proj[0][0] = f / aspect;
   proj[1][1] = f;
   proj[2][3] = -1.0f;
@@ -325,7 +312,6 @@ void Game::render() {
 
   float waveH = ocean_.heightAt(camPos_.x, camPos_.z, time_);
   float camDepth = waveH - camPos_.y;
-  // Keep a little hysteresis so a camera skimming the surface doesn't flicker.
   bool underwater = camDepth > (lastCamDepth_ > 0.0f ? -0.05f : 0.05f);
   lastCamDepth_ = underwater ? std::max(camDepth, 0.001f) : std::min(camDepth, -0.001f);
   float depthT = std::clamp(camDepth / 25.0f, 0.0f, 1.0f);
@@ -363,11 +349,10 @@ void Game::render() {
   WhaleDraw wd;
   wd.world = whaleM;
   whaleModel_.pose(whale_.swim, wd.joints);
-  wd.fogAmount = 0.0f;  // the player's whale stays visible in the dark
+  wd.fogAmount = 0.0f;
   wd.lightPos = whaleLight;
   wd.lightStrength = 1.0f;
 
-  // ---- sun shadow map
   glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo_);
   glViewport(0, 0, kShadowSize, kShadowSize);
   glEnable(GL_DEPTH_TEST);
@@ -386,8 +371,6 @@ void Game::render() {
   glBindTexture(GL_TEXTURE_2D, shadowTex_);
   glActiveTexture(GL_TEXTURE0);
 
-  // ---- what the sea mirrors: everything above the water, seen from a camera
-  // flipped below the surface (only needed when we're above it)
   if (!underwater) {
     glm::mat4 flip = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, -1.0f, 1.0f));
     FrameData rd = fd;
@@ -409,11 +392,11 @@ void Game::render() {
     drawFullscreenTriangle();
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
-#ifndef HERTZ_ES  // WebGL has no clip distances; the shaders discard instead
+#ifndef HERTZ_ES
     glEnable(GL_CLIP_DISTANCE0);
 #endif
     glEnable(GL_CULL_FACE);
-    glFrontFace(GL_CW);  // the mirror flips the winding
+    glFrontFace(GL_CW);
     level_.draw();
     drawWhales(wd);
     glFrontFace(GL_CCW);
@@ -426,7 +409,6 @@ void Game::render() {
   glBindTexture(GL_TEXTURE_2D, reflection_.color);
   glActiveTexture(GL_TEXTURE0);
 
-  // ---- the scene, in HDR
   glBindFramebuffer(GL_FRAMEBUFFER, scene_.fbo);
   glViewport(0, 0, width_, height_);
   glClearDepth(0.0);
@@ -446,7 +428,6 @@ void Game::render() {
   level_.draw();
   drawWhales(wd);
 
-  // See-through things, back to front-ish.
   glDisable(GL_CULL_FACE);
   glEnable(GL_BLEND);
   glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
@@ -461,7 +442,6 @@ void Game::render() {
   glDepthMask(GL_TRUE);
   glDisable(GL_BLEND);
 
-  // ---- post and HUD
   PostSettings ps;
   float fade = 0.0f;
   if (bounceState_ == 1) fade = std::min(1.0f, bounceTimer_ / 0.9f);
@@ -510,7 +490,6 @@ void Game::drawHud() {
   float s = height_ / 720.0f;
   glm::vec2 c(width_ * 0.5f, height_ * 0.5f);
 
-  // Breath meter.
   float bw = 300.0f * s, bh = 12.0f * s;
   glm::vec2 bp(c.x - bw * 0.5f, height_ - 46.0f * s);
   float low = breath_ < 0.25f ? 0.5f + 0.5f * std::sin(time_ * 9.0f) : 0.0f;
@@ -523,7 +502,6 @@ void Game::drawHud() {
   std::string label = breathing ? "BREATHING..." : (breath_ < 0.25f ? "BREATH - SURFACE NOW!" : "BREATH");
   hud_.text(glm::vec2(c.x, bp.y - 20.0f * s), label, 2.0f * s, glm::vec4(0.85f, 0.95f, 1.0f, 0.9f), Hud::Center);
 
-  // Depth and speed.
   char buf[128];
   float depth = std::max(0.0f, -whale_.pos.y);
   if (whale_.pos.y > 0.0f) std::snprintf(buf, sizeof buf, "AIRBORNE  %.1f m", whale_.pos.y);

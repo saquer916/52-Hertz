@@ -48,8 +48,6 @@ vec2 hash22(vec2 p) {
   return fract((p3.xx + p3.yz) * p3.zy);
 }
 
-// ---------------------------------------------------------------- sky
-// Evening sky without clouds or the sun's disc (also used for haze and ambient light).
 vec3 skyBase(vec3 d) {
   vec3 s = uSunDir.xyz;
   float h = max(d.y, 0.0);
@@ -86,7 +84,6 @@ vec3 skyColor(vec3 d, bool withSunDisc) {
   return col;
 }
 
-// 1 = in sunlight, 0 = in the shadow of a cliff (5-tap PCF).
 float sunShadow(vec3 p, vec3 n) {
   vec4 s = uShadowMat * vec4(p + n * 0.25, 1.0);
   if (s.x < 0.0 || s.x > 1.0 || s.y < 0.0 || s.y > 1.0 || s.z > 1.0) return 1.0;
@@ -99,33 +96,26 @@ float sunShadow(vec3 p, vec3 n) {
   return sum * 0.2;
 }
 
-// Light from the whole sky (and the sea below) for a surface facing `n`.
 vec3 skyAmbient(vec3 n) {
   vec3 skyAvg = vec3(0.34, 0.42, 0.58);
   vec3 ground = vec3(0.09, 0.11, 0.12);
   return mix(ground, skyAvg, n.y * 0.5 + 0.5) * uSunColor.w;
 }
 
-// ---------------------------------------------------------------- water light
-// How much sunlight reaches `y` metres (negative = under the surface).
 float sunReach(float y) { return exp(min(y, 0.0) * 0.11); }
 
-// Colour of the light the water scatters back at a depth: teal near the
-// top, pitch black by about 25 m.
 vec3 waterScatter(float depth) {
   float k = clamp(depth / 25.0, 0.0, 1.0);
   return vec3(0.022, 0.105, 0.14) * pow(1.0 - k, 2.6);
 }
 
-// Fog along the line from the camera to `p`: only the stretch of it that is
-// under water fogs, so looking down into the sea from the air works too.
 vec3 applyFog(vec3 col, vec3 p) {
   vec3 c = uCamPos.xyz;
   vec3 v = p - c;
   float d = length(v);
   float yc = c.y, yp = p.y;
   float wet;
-  if (uWater.w < -0.5) wet = 0.0;  // the mirrored view in the reflection pass is all in the air
+  if (uWater.w < -0.5) wet = 0.0;
   else if (yc < 0.0 && yp < 0.0) wet = 1.0;
   else if (yc >= 0.0 && yp >= 0.0) wet = 0.0;
   else if (yc < 0.0) wet = yc / (yc - yp);
@@ -134,9 +124,7 @@ vec3 applyFog(vec3 col, vec3 p) {
   if (uWater.w > 0.5) {
     float vis = uFogColor.w;
     float begin = uWater.z;
-    // Linear, like Godot's depth fog: clear until `begin`, solid at `vis`.
     float f = clamp((wLen - begin) / max(vis - begin, 0.5), 0.0, 1.0);
-    // A little brighter when looking up towards the light, darker looking down.
     float lookDepth = max(uWater.x - (v.y / max(d, 1e-3)) * 5.0, 0.0);
     vec3 fogCol = mix(uFogColor.rgb, waterScatter(lookDepth), 0.5);
     return mix(col, fogCol, f);
@@ -150,7 +138,6 @@ vec3 applyFog(vec3 col, vec3 p) {
   return mix(col, skyBase(normalize(v)), fa * 0.85);
 }
 
-// ---------------------------------------------------------------- caustics
 float voronoiEdge(vec2 p, float t) {
   vec2 n = floor(p), f = fract(p);
   float d1 = 8.0, d2 = 8.0;
@@ -166,7 +153,6 @@ float voronoiEdge(vec2 p, float t) {
   return sqrt(d2) - sqrt(d1);
 }
 
-// Dancing light lines that the waves focus onto things near the surface.
 float caustics(vec3 p) {
   vec2 uv = (p.xz - uSunDir.xz * 0.35 * p.y) * 0.21;
   float t = TIME * 0.9;
@@ -178,11 +164,8 @@ float caustics(vec3 p) {
 )GLSL";
 
 #ifdef HERTZ_GL41
-// macOS stops at OpenGL 4.1 and browsers have WebGL 2 (GLSL ES 3.00); neither has
-// `layout(binding = N)` in GLSL. Strip those qualifiers and remember them, so
-// compileProgram can assign the same units from C++.
 static std::vector<std::pair<std::string, int>> gSamplerUnits, gBlockBindings;
-static bool gVertexClips = false;  // the program's vertex shader wrote gl_ClipDistance
+static bool gVertexClips = false;
 
 static std::string toPortableGLSL(std::string src, GLenum type, const std::string& name) {
   static const std::regex sampler(R"(layout\s*\(\s*binding\s*=\s*(\d+)\s*\)\s*uniform\s+(\w+)\s+(\w+))");
@@ -194,15 +177,11 @@ static std::string toPortableGLSL(std::string src, GLenum type, const std::strin
   src = std::regex_replace(src, sampler, "uniform $2 $3");
   src = std::regex_replace(src, block, "layout(std140) uniform $2");
   if (type == GL_VERTEX_SHADER && name.find("shadow") != std::string::npos) {
-    // No glClipControl here, so do its job for the shadow map: map its 0..1 depth to
-    // OpenGL's default -1..1, so the same things get clipped and shadows match OpenGL 4.5.
     src = std::regex_replace(src, std::regex(R"(void\s+main\s*\(\s*\))"), "void hertzVertexMain()");
     src += "\nvoid main() {\n  hertzVertexMain();\n  gl_Position.z = 2.0 * gl_Position.z - gl_Position.w;\n}\n";
   }
 #ifdef HERTZ_ES
-  src.erase(0, src.find("#version"));  // WebGL requires #version to be the very first line
-  // WebGL 2: GLSL ES 3.00 needs precisions, and has no gl_ClipDistance. The water
-  // reflection's clip plane is done by discarding pixels in the fragment shader instead.
+  src.erase(0, src.find("#version"));
   src = std::regex_replace(src, std::regex("#version 450 core"),
                            "#version 300 es\n"
                            "precision highp float;\nprecision highp int;\n"
@@ -303,7 +282,6 @@ void uploadFrameBlock(const FrameData& data) {
   glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(FrameData), &data);
 }
 
-// ---------------------------------------------------------------- noise texture
 namespace {
 constexpr int kNoiseSize = 256;
 
@@ -319,7 +297,6 @@ struct PeriodicNoise {
     float a = (h & 0xffff) / 65535.0f * 6.2831853f;
     return std::cos(a) * dx + std::sin(a) * dy;
   }
-  // Perlin gradient noise that repeats every `period` cells.
   float at(float x, float y, int period) const {
     int ix = (int)std::floor(x), iy = (int)std::floor(y);
     float fx = x - ix, fy = y - iy;
@@ -346,7 +323,7 @@ struct PeriodicNoise {
     return 0.5f + 0.75f * sum / norm;
   }
 };
-}  // namespace
+}
 
 void initNoiseTexture() {
   PeriodicNoise a{17u}, b{4711u};
@@ -438,7 +415,6 @@ Image decodePNG(const std::string& path, int maxSize) {
     std::fprintf(stderr, "Could not load %s: %s\n", path.c_str(), stbi_failure_reason());
     std::exit(1);
   }
-  // Halve the image until it fits (a 2x2 box filter), to save memory and upload time.
   std::vector<unsigned char> img(data, data + (size_t)w * h * 4);
   stbi_image_free(data);
   while (w > maxSize || h > maxSize) {

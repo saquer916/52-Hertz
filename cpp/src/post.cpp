@@ -13,8 +13,6 @@ void main() {
 }
 )GLSL";
 
-// 13-tap downsample (as in Call of Duty: Advanced Warfare's bloom); the first
-// pass also keeps only the bright parts.
 const char* kDownFS = R"GLSL(
 in vec2 vUV;
 layout(binding = 0) uniform sampler2D uSrc;
@@ -71,36 +69,31 @@ uniform float uFade;
 uniform float uUnderwater;
 out vec4 fragColor;
 
-// Filmic curve (Narkowicz's ACES fit).
 vec3 aces(vec3 x) {
   return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
 }
 
 void main() {
   vec2 uv = vUV;
-  // Underwater, the picture sways a little.
   uv += uUnderwater * 0.0018 * vec2(sin(uv.y * 23.0 + TIME * 1.7), cos(uv.x * 19.0 + TIME * 1.3));
   vec3 col = texture(uScene, uv).rgb;
   vec3 bloom = texture(uBloom, uv).rgb;
   col += bloom * 0.07;
   col *= uExposure;
   col = aces(col);
-  // A touch more colour and contrast, like the Godot version's adjustments.
   float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
   col = max(mix(vec3(lum), col, 1.22), 0.0);
   col = pow(col, vec3(1.0 / 2.2));
   col = mix(col, col * col * (3.0 - 2.0 * col), 0.15);
-  // Vignette.
   vec2 q = vUV - 0.5;
   col *= 1.0 - dot(q, q) * (0.55 + 0.35 * uUnderwater);
   col *= 1.0 - uFade;
-  // Dither so the dark water gradients don't band.
   col += (hash12(gl_FragCoord.xy + fract(TIME) * 61.0) - 0.5) / 255.0;
   fragColor = vec4(col, 1.0);
 }
 )GLSL";
 
-}  // namespace
+}
 
 void Post::init() {
   downProg_ = compileProgram("bloom down", kFullscreenVS, kDownFS);
@@ -121,7 +114,6 @@ void Post::run(const RenderTarget& scene, const RenderTarget& out, const PostSet
   glDisable(GL_BLEND);
   glDisable(GL_CULL_FACE);
 
-  // Down the chain...
   glUseProgram(downProg_);
   GLuint src = scene.color;
   int sw = scene.width, sh = scene.height;
@@ -137,7 +129,6 @@ void Post::run(const RenderTarget& scene, const RenderTarget& out, const PostSet
     sw = bloom_[i].width;
     sh = bloom_[i].height;
   }
-  // ...and back up, adding each blurrier level onto the sharper one.
   glUseProgram(upProg_);
   glEnable(GL_BLEND);
   glBlendFunc(GL_ONE, GL_ONE);

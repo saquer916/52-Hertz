@@ -12,7 +12,7 @@
 #include "render_util.h"
 
 #ifdef __EMSCRIPTEN__
-static constexpr std::launch kDecodeLaunch = std::launch::deferred;  // no threads in the browser
+static constexpr std::launch kDecodeLaunch = std::launch::deferred;
 #else
 static constexpr std::launch kDecodeLaunch = std::launch::async;
 #endif
@@ -28,7 +28,7 @@ layout(location = 4) in uvec4 aJoints;
 layout(location = 5) in vec4 aWeights;
 uniform mat4 uModel;
 uniform mat4 uJoints[16];
-uniform mat4 uLightViewProj;  // only for the shadow pass
+uniform mat4 uLightViewProj;
 out float gl_ClipDistance[1];
 out vec3 vWorld;
 out vec3 vNormal;
@@ -62,7 +62,7 @@ layout(binding = 1) uniform sampler2D uNormalMap;
 layout(binding = 2) uniform sampler2D uORM;
 uniform float uFogAmount;
 uniform vec3 uGlow;
-uniform vec4 uLight;  // xyz position, w strength
+uniform vec4 uLight;
 out vec4 fragColor;
 
 float ggx(float NdotH, float a) {
@@ -78,7 +78,7 @@ void main() {
 #endif
   vec3 base = texture(uBase, vUV).rgb;
   vec3 orm = texture(uORM, vUV).rgb;
-  float rough = clamp(orm.g * 0.5, 0.2, 1.0);  // the material's roughness factor is 0.5
+  float rough = clamp(orm.g * 0.5, 0.2, 1.0);
   vec3 nm = texture(uNormalMap, vUV).xyz * 2.0 - 1.0;
   vec3 N = normalize(vNormal);
   vec3 T = normalize(vTangent.xyz - N * dot(N, vTangent.xyz));
@@ -90,7 +90,6 @@ void main() {
   bool camUnder = uWater.w > 0.5;
   float depth = max(-vWorld.y, 0.0);
 
-  // Sun (dimmed and tinted by the water above this point, shadowed by cliffs).
   vec3 L = uSunDir.xyz;
   float reach = sunReach(vWorld.y);
   vec3 sun = uSunColor.rgb * reach * mix(vec3(1.0), vec3(0.35, 0.8, 1.0), clamp(depth / 6.0, 0.0, 1.0));
@@ -100,18 +99,15 @@ void main() {
   float spec = ggx(max(dot(N, H), 0.0), rough * rough) * 0.04 * NdotL;
   vec3 col = base * sun * NdotL / PI * 2.4 + sun * spec;
 
-  // Ambient: sky light from above, water glow from below.
   float up = N.y * 0.5 + 0.5;
   vec3 skyAmb = skyAmbient(N);
   vec3 waterAmb = waterScatter(depth) * 3.0;
   vec3 amb = depth > 0.0 ? mix(waterAmb, skyAmb * reach, up * 0.7) : skyAmb;
   col += base * amb * orm.r;
 
-  // Caustics on the back near the surface.
   if (vWorld.y < 0.0 && vWorld.y > -20.0)
     col += base * sun * caustics(vWorld) * max(N.y, 0.0) * 0.6;
 
-  // The whale's own soft light, so it never disappears in the deep.
   vec3 toLight = uLight.xyz - vWorld;
   float dl = length(toLight);
   float att = pow(clamp(1.0 - dl / 30.0, 0.0, 1.0), 2.0) * uLight.w;
@@ -120,7 +116,6 @@ void main() {
   vec3 Hl = normalize(toLight / dl + V);
   col += vec3(0.75, 0.85, 1.0) * ggx(max(dot(N, Hl), 0.0), rough * rough) * 0.03 * att * wrap;
 
-  // A faint blue rim keeps the outline readable against black water.
   float rim = pow(1.0 - NdotV, 3.0);
   col += rim * (camUnder ? vec3(0.03, 0.06, 0.08) * (0.4 + uLight.w) : vec3(0.02, 0.025, 0.03));
   col += rim * uGlow + uGlow * 0.08;
@@ -144,7 +139,6 @@ glm::mat4 trs(glm::vec3 t, glm::quat r, glm::vec3 s) {
   return glm::translate(glm::mat4(1.0f), t) * glm::mat4_cast(r) * glm::scale(glm::mat4(1.0f), s);
 }
 
-// Samples one animation channel at time `t` (linear keys, as in this file).
 void sampleChannel(const cgltf_animation_channel& ch, float t, float out[4]) {
   const cgltf_animation_sampler* s = ch.sampler;
   cgltf_size n = s->input->count;
@@ -169,11 +163,9 @@ void sampleChannel(const cgltf_animation_channel& ch, float t, float out[4]) {
   }
 }
 
-}  // namespace
+}
 
 glm::mat4 WhaleModel::fileToWhale() {
-  // Same placement as the Godot scene: scale 0.50578 (about 14 m long), file -X
-  // (the head) becomes -Z (forward), lowered so the body is centred.
   const float s = 0.50578f;
   glm::mat4 m(0.0f);
   m[0] = glm::vec4(0, 0, s, 0);
@@ -184,7 +176,6 @@ glm::mat4 WhaleModel::fileToWhale() {
 }
 
 bool WhaleModel::load(const std::string& dir) {
-  // Decode the three 4K textures on other threads while we parse the mesh.
   auto baseF = std::async(kDecodeLaunch, decodePNG, dir + "/textures/StingrayPBS1_baseColor.png", 2048);
   auto normF = std::async(kDecodeLaunch, decodePNG, dir + "/textures/StingrayPBS1_normal.png", 2048);
   auto ormF = std::async(kDecodeLaunch, decodePNG, dir + "/textures/StingrayPBS1_metallicRoughness.png", 2048);
@@ -198,7 +189,6 @@ bool WhaleModel::load(const std::string& dir) {
     return false;
   }
 
-  // ---- skeleton
   const cgltf_skin& skin = data->skins[0];
   joints_.resize(skin.joints_count);
   for (cgltf_size j = 0; j < skin.joints_count; ++j) {
@@ -213,15 +203,12 @@ bool WhaleModel::load(const std::string& dir) {
       if (skin.joints[p] == n->parent) J.parent = (int)p;
     if (J.parent < 0 && n->parent) cgltf_node_transform_world(n->parent, glm::value_ptr(rootParent_));
   }
-  // Rest pose in skeleton space (used to find each bone's own axes).
   for (size_t j = 0; j < joints_.size(); ++j) {
     Joint& J = joints_[j];
     glm::mat4 parent = J.parent >= 0 ? joints_[J.parent].restGlobal : rootParent_;
     J.restGlobal = parent * trs(J.t, J.r, J.s);
   }
 
-  // The model's own idle clip is stiff, so we drive the bones ourselves, but its
-  // average pose makes a better neutral body than the bind pose (as in Godot).
   if (data->animations_count > 0) {
     const cgltf_animation& anim = data->animations[0];
     float length = 0;
@@ -260,7 +247,6 @@ bool WhaleModel::load(const std::string& dir) {
   flippers_[0] = find("R_Root_Fin_08");
   flippers_[1] = find("L_Root_Fin_011");
 
-  // ---- mesh
   const cgltf_primitive& prim = data->meshes[0].primitives[0];
   std::vector<Vertex> verts;
   for (cgltf_size a = 0; a < prim.attributes_count; ++a) {
@@ -359,13 +345,10 @@ void WhaleModel::pose(const SwimPose& swim, glm::mat4 out[kMaxJoints]) const {
   };
   for (size_t i = 0; i < spine_.size(); ++i) {
     float stroke = glm::radians(spineDeg[i]) * swim.power * std::sin(swim.phase - lag * i);
-    // Spine bones point towards the tail, so curving into a turn means rotating against it.
     float curve = -glm::radians(turnDeg[i]) * swim.turn;
     bend(spine_[i], stroke, curve);
   }
-  // The head counters the stroke a little and leads into turns.
   bend(head_, -glm::radians(2.0f) * swim.power * std::sin(swim.phase + 0.6f), glm::radians(10.0f) * swim.turn);
-  // Flippers: a mirrored flap with the stroke, plus opposite tilts to steer.
   float flap = glm::radians(5.0f) * swim.power * std::sin(swim.phase - 0.8f);
   float steer = glm::radians(20.0f) * swim.turn;
   for (int i = 0; i < 2; ++i) {
@@ -400,7 +383,7 @@ void WhaleModel::draw(const WhaleDraw& d) const {
   glBindTexture(GL_TEXTURE_2D, texORM_);
   glActiveTexture(GL_TEXTURE0);
   glBindVertexArray(vao_);
-  glDisable(GL_CULL_FACE);  // the material is double-sided
+  glDisable(GL_CULL_FACE);
   glDrawElements(GL_TRIANGLES, indexCount_, GL_UNSIGNED_INT, nullptr);
   glEnable(GL_CULL_FACE);
 }

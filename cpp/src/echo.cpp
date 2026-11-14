@@ -10,7 +10,7 @@
 namespace {
 
 const char* kDotVS = R"GLSL(
-layout(location = 0) in vec4 aDot;   // xyz, time it starts to appear
+layout(location = 0) in vec4 aDot;
 layout(location = 1) in float aKind;
 out vec2 vUV;
 out vec4 vColor;
@@ -18,12 +18,10 @@ void main() {
   const vec2 corners[4] = vec2[](vec2(-1, -1), vec2(1, -1), vec2(-1, 1), vec2(1, 1));
   vec2 corner = corners[gl_VertexID];
   float age = TIME - aDot.w;
-  // Fade in over 0.8 s once the echo is back, then out over 5 s (as in Godot).
   float a = clamp(age / 0.8, 0.0, 1.0) * (1.0 - clamp((age - 0.8) / 5.0, 0.0, 1.0));
   vec4 clip = uViewProj * vec4(aDot.xyz, 1.0);
   float radius = 0.16;
   float px = uProj[1][1] * radius / max(clip.w, 1e-3) * uScreen.y * 0.5;
-  // Keep far dots at least ~1.3 px wide, but dimmer, so they don't flicker.
   float grow = max(px, 1.3) / max(px, 1e-4);
   a *= sqrt(clamp(px / 1.3, 0.25, 1.0));
   if (a <= 0.001 || age < 0.0) {
@@ -33,7 +31,6 @@ void main() {
   clip.xy += corner * radius * grow * vec2(uProj[0][0], uProj[1][1]);
   gl_Position = clip;
   vUV = corner;
-  // Lighter gray the closer the whale is.
   float gray = mix(0.92, 0.2, smoothstep(8.0, 90.0, distance(aDot.xyz, uWhaleHead.xyz)));
   vec3 col = aKind > 0.5 ? vec3(1.0, 0.78, 0.42) * (0.6 + gray) * 1.6 : vec3(gray) * 1.25;
   vColor = vec4(col, a);
@@ -52,7 +49,7 @@ void main() {
 }
 )GLSL";
 
-}  // namespace
+}
 
 void Echo::init() {
   program_ = compileProgram("echo dots", kDotVS, kDotFS);
@@ -72,7 +69,6 @@ void Echo::init() {
 }
 
 void Echo::clear() {
-  // Mark every slot as long gone.
   std::vector<Dot> empty(kCapacity, Dot{glm::vec4(0, 0, 0, -1e6f), 0.0f});
   glBindBuffer(GL_ARRAY_BUFFER, vbo_);
   glBufferSubData(GL_ARRAY_BUFFER, 0, kCapacity * sizeof(Dot), empty.data());

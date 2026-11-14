@@ -16,7 +16,6 @@
 
 namespace {
 
-// ---------------------------------------------------------------- rock noise
 struct Perlin3 {
   int perm[512];
   explicit Perlin3(unsigned seed) {
@@ -53,7 +52,6 @@ const Perlin3& noise() {
   return n;
 }
 
-// ---------------------------------------------------------------- shaders
 const char* kRockVS = R"GLSL(
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aNormal;
@@ -85,7 +83,6 @@ void main() {
   vec3 N = normalize(vNormal);
   vec3 w = pow(abs(N), vec3(4.0));
   w /= dot(w, vec3(1.0));
-  // Triplanar rock detail at two scales.
   vec4 ax = texture(uNoise, p.zy * vec2(0.06, 0.03));
   vec4 ay = texture(uNoise, p.xz * 0.06);
   vec4 az = texture(uNoise, p.xy * vec2(0.06, 0.03));
@@ -103,9 +100,7 @@ void main() {
   vec3 rock = vec3(0.32, 0.30, 0.28) * (0.55 + 0.9 * h);
   float band = texture(uNoise, vec2(p.y * 0.021, 0.37 + (p.x + p.z) * 0.0009)).a;
   rock *= mix(vec3(0.82, 0.86, 0.92), vec3(1.18, 1.02, 0.86), smoothstep(0.3, 0.7, band));
-  // Pale, weathered tops and ledges above the water.
   rock = mix(rock, vec3(0.52, 0.50, 0.46) * (0.7 + 0.5 * h), smoothstep(0.55, 0.9, N.y) * step(0.0, p.y) * 0.7);
-  // Wet and darker below the splash line, with a band of weed at the waterline.
   float wet = 1.0 - smoothstep(-0.5, 2.5, p.y + (h - 0.5) * 2.0);
   rock = mix(rock, rock * vec3(0.5, 0.56, 0.52), wet);
   float weed = smoothstep(-7.0, -1.5, p.y) * (1.0 - smoothstep(-0.8, 1.2, p.y)) * smoothstep(0.42, 0.62, n2.a);
@@ -121,7 +116,6 @@ void main() {
   vec3 sky = skyAmbient(N);
   if (p.y >= 0.0) {
     col += rock * sky * ao * 1.1;
-    // Warm bounce light off the sea.
     col += rock * vec3(0.10, 0.09, 0.08) * max(-N.y, 0.0);
   } else {
     col += rock * (sky * 0.5 * reach + waterScatter(depth) * 2.0) * ao;
@@ -167,7 +161,6 @@ std::set<Edge> carve(unsigned seed, Cell start) {
       continue;
     }
     bool canContinue = std::find(options.begin(), options.end(), last) != options.end();
-    // Bias towards going straight, so the maze has long corridors.
     int d = (canContinue && uni(rng) < 0.65f) ? last : options[rng() % options.size()];
     Cell n{cell.first + DIRS[d][0], cell.second + DIRS[d][1]};
     open.insert(edge(cell, n));
@@ -194,7 +187,7 @@ std::map<Cell, int> distances(const std::set<Edge>& open, Cell start) {
   return dist;
 }
 
-}  // namespace
+}
 
 float Level::rockOffset(glm::vec3 p) {
   const Perlin3& n = noise();
@@ -203,7 +196,6 @@ float Level::rockOffset(glm::vec3 p) {
   d += 0.3f * n(p.x * 0.25f, p.y * 0.25f + 5.0f, p.z * 0.25f);
   float strata = std::sin(p.y * 0.45f + 2.5f * n(p.x * 0.02f, p.y * 0.05f, p.z * 0.02f));
   d += 0.45f * strata * strata * strata;
-  // Mostly carved inwards, so the rock rarely pokes out past the collision box.
   return d * 0.9f - 0.7f;
 }
 
@@ -235,7 +227,6 @@ void Level::generate(unsigned seed) {
     steps = -1;
     for (int x = 0; x < kCols; ++x)
       if (dist[{x, kRows - 1}] > steps) steps = dist[{x, kRows - 1}], exitX = x;
-    // The whale starts facing +X, so the first cell must open that way.
     bool opensEast = open.count(edge(startCell, {startCell.first + 1, startCell.second})) > 0;
     if (steps >= 14 && steps <= 22 && opensEast && exitX != startCell.first) break;
     if (s - seed > 5000) break;
@@ -243,7 +234,6 @@ void Level::generate(unsigned seed) {
   seedUsed = s;
   shortestPath = steps;
 
-  // Walk back from the exit cell along decreasing distance to get the route.
   {
     auto dist = distances(open, startCell);
     std::vector<Cell> cells{{exitX, kRows - 1}};
@@ -271,7 +261,7 @@ void Level::generate(unsigned seed) {
   };
   for (int z = 0; z <= kRows; ++z)
     for (int x = 0; x < kCols; ++x) {
-      if (z == kRows && x == exitX) continue;  // the way out
+      if (z == kRows && x == exitX) continue;
       if (z > 0 && z < kRows && open.count(edge({x, z - 1}, {x, z}))) continue;
       addWall(cx(x), cz(z) + kCell / 2, false);
     }
@@ -306,7 +296,6 @@ void Level::buildMesh() {
     int nx = std::max(2, (int)std::lround(size.x / 1.6f));
     int ny = std::max(2, (int)std::lround(size.y / 1.8f));
     int nz = std::max(2, (int)std::lround(size.z / 1.6f));
-    // Displace along the face normal (or the average normal on edges, so faces stay joined).
     auto displace = [&](glm::vec3 p) {
       const float e = 1e-3f;
       glm::vec3 dir(0.0f);
@@ -317,7 +306,6 @@ void Level::buildMesh() {
       bool top = p.y > b.hi.y - e;
       if (top) dir.y += 1;
       if (glm::dot(dir, dir) == 0.0f) return p;
-      // Fade the rock out at the seafloor so the base meets the sand.
       float fadeBottom = glm::clamp((p.y - b.lo.y) / 4.0f, 0.0f, 1.0f);
       glm::vec3 q = p + glm::normalize(dir) * rockOffset(p) * fadeBottom;
       if (top) q.y += 4.0f * n(p.x * 0.06f, 3.3f, p.z * 0.06f) + 2.0f * n(p.x * 0.17f, 7.1f, p.z * 0.17f) - 1.0f;
@@ -347,14 +335,13 @@ void Level::buildMesh() {
         }
     };
     glm::vec3 lo = b.lo, hi = b.hi;
-    face({hi.x, lo.y, hi.z}, {0, 0, -size.z}, {0, size.y, 0}, nz, ny);  // +X
-    face({lo.x, lo.y, lo.z}, {0, 0, size.z}, {0, size.y, 0}, nz, ny);   // -X
-    face({lo.x, lo.y, hi.z}, {size.x, 0, 0}, {0, size.y, 0}, nx, ny);   // +Z
-    face({hi.x, lo.y, lo.z}, {-size.x, 0, 0}, {0, size.y, 0}, nx, ny);  // -Z
-    face({lo.x, hi.y, hi.z}, {size.x, 0, 0}, {0, 0, -size.z}, nx, nz);  // top
+    face({hi.x, lo.y, hi.z}, {0, 0, -size.z}, {0, size.y, 0}, nz, ny);
+    face({lo.x, lo.y, lo.z}, {0, 0, size.z}, {0, size.y, 0}, nz, ny);
+    face({lo.x, lo.y, hi.z}, {size.x, 0, 0}, {0, size.y, 0}, nx, ny);
+    face({hi.x, lo.y, lo.z}, {-size.x, 0, 0}, {0, size.y, 0}, nx, ny);
+    face({lo.x, hi.y, hi.z}, {size.x, 0, 0}, {0, 0, -size.z}, nx, nz);
   }
 
-  // The seafloor: a big gently rolling plane.
   {
     const int N = 96;
     const float extent = 900.0f;
@@ -414,7 +401,7 @@ bool Level::raycast(glm::vec3 from, glm::vec3 dir, float maxDist, RayHit& hit) c
   bool found = false;
   for (const Box& b : walls_) {
     float tmin = 0.0f, tmax = best;
-    int hitAxis = -1; 
+    int hitAxis = -1;
     float hitSign = 0.0f;
     bool miss = false;
     for (int a = 0; a < 3; ++a) {
@@ -465,7 +452,6 @@ bool Level::resolveSphere(glm::vec3& c, float r, glm::vec3& normal) const {
       n = d / dist;
       push = r - dist;
     } else {
-      // Centre is inside the box: leave along the shortest way out.
       glm::vec3 toLo = c - b.lo, toHi = b.hi - c;
       float m = 1e9f;
       for (int a = 0; a < 3; ++a) {

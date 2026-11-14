@@ -1,6 +1,4 @@
 #pragma once
-// A tiny OpenGL 4.5 core loader: every function we call is listed once below
-// and fetched through glfwGetProcAddress at startup.
 #include <GL/glcorearb.h>
 
 #define GL_FUNCTIONS(X)                                                        \
@@ -86,6 +84,4 @@
 GL_FUNCTIONS(GL_DECLARE)
 #undef GL_DECLARE
 
-// Loads every function above. Returns the name of the first one that is
-// missing, or nullptr when all of them loaded.
 const char* loadGL();

@@ -14,9 +14,9 @@
 #include "whale_model.h"
 
 struct InputState {
-  float mouseDx = 0.0f, mouseDy = 0.0f;  // pixels this frame
+  float mouseDx = 0.0f, mouseDy = 0.0f;
   bool boost = false, slow = false, echo = false;
-  bool restart = false;                  // pressed this frame
+  bool restart = false;
   bool mouseCaptured = true;
 };
 
@@ -27,7 +27,7 @@ struct Whale {
   float speed = kCruise, bank = 0.0f, turnRate = 0.0f;
   bool underwater = true;
   SwimPose swim;
-  glm::mat3 basis() const;  // yaw and pitch (no bank): -Z is forward
+  glm::mat3 basis() const;
   glm::vec3 forward() const { return basis() * glm::vec3(0, 0, -1); }
   glm::mat4 modelMatrix() const;
   glm::vec3 head() const { return pos + basis() * glm::vec3(0, 0, -6.8f); }
@@ -44,7 +44,6 @@ class Game {
   const RenderTarget& reflection() const { return reflection_; }
   std::string status() const;
 
-  // Scripted runs (screenshots) use these to set up a shot.
   Whale& whale() { return whale_; }
   const Level& level() const { return level_; }
   void snapCamera();
@@ -54,15 +53,13 @@ class Game {
   bool won() const { return won_; }
 
  private:
-  // --- Gameplay (gameplay.cpp) ---
   void updateEchoInput(float dt, const InputState& in);
   void updateBreath(float dt);
   void updateVelocity(Whale& w, float dt);
   void checkWin();
-  // --- Engine helpers the gameplay calls ---
-  void castEcho(float hold);  // sends a call (uses Echo::callFor / Echo::cast)
-  void startBounceBack();     // out of breath: fade out and move to lastBreathPos_
-  void winGame();             // found the pod
+  void castEcho(float hold);
+  void startBounceBack();
+  void winGame();
   void updateBounceBack(float dt);
 
   void updateWhale(float dt, const InputState& in);
@@ -94,13 +91,13 @@ class Game {
   float breath_ = 1.0f;
   glm::vec3 lastBreathPos_{0.0f};
   float lastBreathYaw_ = 0.0f;
-  int bounceState_ = 0;  // 0 none, 1 fading out, 2 fading in
+  int bounceState_ = 0;
   float bounceTimer_ = 0.0f;
   int bounces_ = 0;
 
   bool won_ = false;
   float wonAt_ = 0.0f, nextPodPulse_ = 0.0f;
-  float podAnswerAt_ = -1.0f;  // the pod calls back when your echo reaches it
+  float podAnswerAt_ = -1.0f;
   std::string message_;
   float messageUntil_ = 0.0f;
   float splashReadyAt_ = 0.0f;

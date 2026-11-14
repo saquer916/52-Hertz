@@ -49,7 +49,7 @@ void main() {
   } else {
     float r = length(vLocal);
     d = abs(r - vShape.x) - vShape.y * 0.5;
-    float ang = atan(vLocal.x, -vLocal.y);  // 0 at the top, clockwise
+    float ang = atan(vLocal.x, -vLocal.y);
     if (ang < 0.0) ang += 6.2831853;
     if (ang < vShape.z || ang > vShape.w) d = max(d, 1.0);
   }
@@ -59,7 +59,7 @@ void main() {
 }
 )GLSL";
 
-}  // namespace
+}
 
 void Hud::init() {
   program_ = compileProgram("hud", kHudVS, kHudFS);
@@ -118,7 +118,7 @@ void Hud::text(glm::vec2 pos, const std::string& s, float scale, glm::vec4 color
     glm::vec2 off = pass == 0 ? glm::vec2(std::max(1.0f, scale * 0.6f)) : glm::vec2(0.0f);
     glm::vec4 col = pass == 0 ? glm::vec4(0, 0, 0, color.a * 0.6f) : color;
     for (int q = 0; q < quads; ++q) {
-      const float* v0 = f + q * 16;      // 4 vertices of x, y, z, colour
+      const float* v0 = f + q * 16;
       const float* v2 = f + q * 16 + 8;
       glm::vec2 a = pos + off + glm::vec2(v0[0], v0[1]) * scale;
       glm::vec2 b = pos + off + glm::vec2(v2[0], v2[1]) * scale;

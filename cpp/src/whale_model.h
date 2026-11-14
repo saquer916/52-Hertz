@@ -9,13 +9,10 @@
 
 constexpr int kMaxJoints = 16;
 
-// Procedural swimming, a port of the Godot version's swim_motion.gd: a wave runs
-// down the spine to the flukes (faster and stronger with speed), the body curves
-// into turns, and the flippers flap and steer.
 struct SwimPose {
   float phase = 0.0f;
   float power = 0.5f;
-  float turn = 0.0f;  // -1 hard right .. 1 hard left
+  float turn = 0.0f;
   void update(float dt, float speed, float boostSpeed, float turnRate);
   float heave() const;
 };
@@ -23,23 +20,20 @@ struct SwimPose {
 struct WhaleDraw {
   glm::mat4 world{1.0f};
   glm::mat4 joints[kMaxJoints];
-  float fogAmount = 0.0f;       // 0 = ignore underwater fog (the player), 1 = fog like everything else
-  glm::vec3 glow{0.0f};         // extra rim light (the pod)
-  glm::vec3 lightPos{0.0f};     // the whale's own light
+  float fogAmount = 0.0f;
+  glm::vec3 glow{0.0f};
+  glm::vec3 lightPos{0.0f};
   float lightStrength = 0.0f;
 };
 
 class WhaleModel {
  public:
   bool load(const std::string& dir);
-  // Bone matrices for a pose (skin order).
   void pose(const SwimPose& swim, glm::mat4 out[kMaxJoints]) const;
   void draw(const WhaleDraw& d) const;
-  // Depth-only draw for the sun's shadow map.
   void drawShadow(const WhaleDraw& d, const glm::mat4& lightViewProj) const;
   int jointCount() const { return (int)joints_.size(); }
 
-  // File coordinates -> whale space (14 m long, head towards -Z, centred).
   static glm::mat4 fileToWhale();
 
  private:

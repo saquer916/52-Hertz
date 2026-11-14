@@ -4,16 +4,14 @@
 
 struct PostSettings {
   float exposure = 1.0f;
-  float fade = 0.0f;        // 0 = clear, 1 = black
-  float underwater = 0.0f;  // 0..1, adds a gentle wobble and tint
+  float fade = 0.0f;
+  float underwater = 0.0f;
 };
 
-// HDR scene -> bloom -> filmic tone mapping -> 8-bit image.
 class Post {
  public:
   void init();
   void resize(int w, int h);
-  // Renders the final image of `scene` into `out` (which must be RGBA8, same size).
   void run(const RenderTarget& scene, const RenderTarget& out, const PostSettings& s);
 
  private:

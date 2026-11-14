@@ -9,7 +9,6 @@
 
 namespace {
 
-// ---------------------------------------------------------------- splash spray
 const char* kParticleVS = R"GLSL(
 layout(location = 0) in vec4 aPosSize;
 layout(location = 1) in vec4 aVelAlpha;
@@ -23,7 +22,6 @@ void main() {
   vec3 vp = (uView * vec4(aPosSize.xyz, 1.0)).xyz;
   float size = aPosSize.w;
   if (aKind < 0.5) {
-    // Spray streaks: stretched along their motion on screen.
     vec3 vv = mat3(uView) * aVelAlpha.xyz;
     vec2 axis = length(vv.xy) > 1e-3 ? normalize(vv.xy) : vec2(0.0, 1.0);
     vec2 side = vec2(-axis.y, axis.x);
@@ -35,12 +33,9 @@ void main() {
   gl_Position = uProj * vec4(vp, 1.0);
   vUV = c;
   vKindOut = aKind;
-  // White water lit by the sun and the sky.
   vec3 light = uSunColor.rgb * 0.4 + skyAmbient(vec3(0.0, 1.0, 0.0)) * 0.8;
   float a = aVelAlpha.w * (aKind > 1.5 ? 0.12 : (aKind > 0.5 ? 0.85 : 0.5));
-  // Underwater spray (seen from below) would be wrong: hide anything under the surface.
   a *= smoothstep(-0.4, 0.2, aPosSize.y);
-  // Don't let spray right in front of the lens fog up the whole view.
   a *= smoothstep(1.5, 6.0, -vp.z);
   vColor = vec4(light * (aKind > 1.5 ? 0.95 : 1.1), a);
 }
@@ -55,7 +50,6 @@ void main() {
   float d = length(vUV);
   float a = 1.0 - smoothstep(0.35, 1.0, d);
   if (vKindOut < 0.5) {
-    // Streaks: soft across, tapering at both ends.
     a = (1.0 - smoothstep(0.0, 1.0, abs(vUV.x))) * (1.0 - smoothstep(0.2, 1.0, abs(vUV.y)));
   } else if (vKindOut > 1.5) {
     a = pow(1.0 - smoothstep(0.0, 1.0, d), 1.5);
@@ -67,9 +61,8 @@ void main() {
 }
 )GLSL";
 
-// ---------------------------------------------------------------- marine snow
 const char* kSnowVS = R"GLSL(
-layout(location = 0) in vec4 aSeed;   // xyz in 0..1, w = size factor
+layout(location = 0) in vec4 aSeed;
 out vec2 vUV;
 out vec4 vColor;
 void main() {
@@ -91,7 +84,6 @@ void main() {
   clip.xy += c * radius * grow * vec2(uProj[0][0], uProj[1][1]);
   gl_Position = clip;
   vUV = c;
-  // Seen by the whale's light, plus a little from the water near the surface.
   float dl = distance(p, uWhaleLight.xyz);
   float lit = pow(clamp(1.0 - dl / 30.0, 0.0, 1.0), 2.0) * uWhaleLight.w;
   vec3 col = vec3(0.6, 0.75, 0.8) * lit * 0.5 + waterScatter(-p.y) * 2.5 + vec3(0.5, 0.7, 0.75) * sunReach(p.y) * 0.12;
@@ -110,9 +102,8 @@ void main() {
 }
 )GLSL";
 
-// ---------------------------------------------------------------- light shafts
 const char* kShaftVS = R"GLSL(
-layout(location = 0) in vec4 aSeed;  // xz in 0..1, width, phase
+layout(location = 0) in vec4 aSeed;
 out vec2 vUV;
 out float vBright;
 void main() {
@@ -122,7 +113,6 @@ void main() {
   vec2 rel = aSeed.xy * tile - uCamPos.xz;
   rel -= tile * floor(rel / tile + 0.5);
   vec3 top = vec3(uCamPos.x + rel.x, 0.0, uCamPos.z + rel.y);
-  // Sunlight bends steeply down as it enters the water.
   vec3 axis = refract(-uSunDir.xyz, vec3(0.0, 1.0, 0.0), 1.0 / 1.33);
   float len = 38.0;
   vec3 mid = top + axis * len * 0.5;
@@ -132,7 +122,6 @@ void main() {
   vUV = c;
   float flicker = 0.55 + 0.45 * sin(TIME * (0.4 + aSeed.w * 0.5) + aSeed.w * 30.0);
   float camDepth = uWater.x;
-  // Fade shafts the camera is close to (they are flat cards).
   vec3 toCam = uCamPos.xyz - top;
   vec3 closest = top + axis * clamp(dot(toCam, axis), 0.0, len);
   float near = smoothstep(5.0, 14.0, distance(uCamPos.xyz, closest));
@@ -155,7 +144,6 @@ void main() {
 }
 )GLSL";
 
-// ---------------------------------------------------------------- sound pulses
 const char* kPulseVS = R"GLSL(
 layout(location = 0) in vec3 aDir;
 uniform vec3 uOrigin;
@@ -187,7 +175,7 @@ void main() {
 }
 )GLSL";
 
-}  // namespace
+}
 
 void Effects::init() {
   std::uniform_real_distribution<float> uni(0.0f, 1.0f);
@@ -228,7 +216,6 @@ void Effects::init() {
   glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), nullptr);
   glVertexAttribDivisor(0, 1);
 
-  // A UV sphere of unit directions for the pulses.
   pulseProg_ = compileProgram("pulse", kPulseVS, kPulseFS);
   std::vector<glm::vec3> dirs;
   std::vector<uint32_t> idx;
@@ -263,7 +250,6 @@ void Effects::splash(glm::vec3 where, float strength) {
   auto rnd = [&](float a, float b) { return a + (b - a) * uni(rng_); };
   float scale = 0.7f + 0.6f * strength / 1.5f;
   float amount = std::clamp(strength, 0.35f, 1.0f);
-  // A crown of spray streaks flung up and outward.
   for (int i = 0; i < (int)(170 * amount); ++i) {
     float a = rnd(0, 6.2831853f);
     glm::vec3 out(std::cos(a), 0.0f, std::sin(a));
@@ -272,7 +258,6 @@ void Effects::splash(glm::vec3 where, float strength) {
     float life = rnd(1.1f, 2.0f);
     particles_.push_back({where + out * r, v, life, life, rnd(0.12f, 0.3f) * scale, 0.0f, 0.0f, 1.0f});
   }
-  // Smaller droplets thrown every which way.
   for (int i = 0; i < (int)(220 * amount); ++i) {
     float a = rnd(0, 6.2831853f);
     glm::vec3 out(std::cos(a), 0.0f, std::sin(a));
@@ -280,7 +265,6 @@ void Effects::splash(glm::vec3 where, float strength) {
     float life = rnd(0.8f, 1.8f);
     particles_.push_back({where + out * rnd(0.5f, 3.0f) * scale, v, life, life, rnd(0.04f, 0.1f), 0.0f, 1.0f, 1.0f});
   }
-  // A little mist that hangs and spreads.
   for (int i = 0; i < (int)(18 * amount); ++i) {
     float a = rnd(0, 6.2831853f);
     glm::vec3 out(std::cos(a), 0.0f, std::sin(a));
@@ -310,7 +294,6 @@ void Effects::update(float dt, float now) {
     p.size += p.growth * dt;
     float t = p.life / p.maxLife;
     p.alpha = mist ? std::min(1.0f, (1.0f - t) * 6.0f) * t : std::min(1.0f, t * 3.0f);
-    // Drops rejoin the sea when they fall back in.
     if (!mist && p.pos.y < -0.3f && p.vel.y < 0.0f) p.life = 0.0f;
   }
   particles_.erase(std::remove_if(particles_.begin(), particles_.end(), [](const Particle& p) { return p.life <= 0; }),
