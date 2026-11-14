@@ -407,13 +407,17 @@ void Game::render() {
     drawFullscreenTriangle();
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
+#ifndef HERTZ_ES  // WebGL has no clip distances; the shaders discard instead
     glEnable(GL_CLIP_DISTANCE0);
+#endif
     glEnable(GL_CULL_FACE);
     glFrontFace(GL_CW);  // the mirror flips the winding
     level_.draw();
     drawWhales(wd);
     glFrontFace(GL_CCW);
+#ifndef HERTZ_ES
     glDisable(GL_CLIP_DISTANCE0);
+#endif
     uploadFrameBlock(fd);
   }
   glActiveTexture(GL_TEXTURE5);

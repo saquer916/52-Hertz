@@ -90,9 +90,6 @@ vec3 skyColor(vec3 d, bool withSunDisc) {
 float sunShadow(vec3 p, vec3 n) {
   vec4 s = uShadowMat * vec4(p + n * 0.25, 1.0);
   if (s.x < 0.0 || s.x > 1.0 || s.y < 0.0 || s.y > 1.0 || s.z > 1.0) return 1.0;
-#ifdef HERTZ_GL41
-  s.z = s.z * 0.5 + 0.5;  // no glClipControl: the shadow map stored depth as z * 0.5 + 0.5
-#endif
   vec2 texel = vec2(1.0 / 2048.0);
   float sum = texture(uShadowMap, vec3(s.xy, s.z - 0.0008));
   sum += texture(uShadowMap, vec3(s.xy + vec2(1.5, 0.5) * texel, s.z - 0.0008));
@@ -181,11 +178,13 @@ float caustics(vec3 p) {
 )GLSL";
 
 #ifdef HERTZ_GL41
-// macOS stops at OpenGL 4.1, which has no `layout(binding = N)` in GLSL. Strip those
-// qualifiers and remember them, so compileProgram can assign the same units from C++.
+// macOS stops at OpenGL 4.1 and browsers have WebGL 2 (GLSL ES 3.00); neither has
+// `layout(binding = N)` in GLSL. Strip those qualifiers and remember them, so
+// compileProgram can assign the same units from C++.
 static std::vector<std::pair<std::string, int>> gSamplerUnits, gBlockBindings;
+static bool gVertexClips = false;  // the program's vertex shader wrote gl_ClipDistance
 
-static std::string toGLSL410(std::string src) {
+static std::string toPortableGLSL(std::string src, GLenum type, const std::string& name) {
   static const std::regex sampler(R"(layout\s*\(\s*binding\s*=\s*(\d+)\s*\)\s*uniform\s+(\w+)\s+(\w+))");
   static const std::regex block(R"(layout\s*\(\s*std140\s*,\s*binding\s*=\s*(\d+)\s*\)\s*uniform\s+(\w+))");
   for (std::sregex_iterator it(src.begin(), src.end(), sampler), end; it != end; ++it)
@@ -194,7 +193,34 @@ static std::string toGLSL410(std::string src) {
     gBlockBindings.emplace_back((*it)[2], std::stoi((*it)[1]));
   src = std::regex_replace(src, sampler, "uniform $2 $3");
   src = std::regex_replace(src, block, "layout(std140) uniform $2");
+  if (type == GL_VERTEX_SHADER && name.find("shadow") != std::string::npos) {
+    // No glClipControl here, so do its job for the shadow map: map its 0..1 depth to
+    // OpenGL's default -1..1, so the same things get clipped and shadows match OpenGL 4.5.
+    src = std::regex_replace(src, std::regex(R"(void\s+main\s*\(\s*\))"), "void hertzVertexMain()");
+    src += "\nvoid main() {\n  hertzVertexMain();\n  gl_Position.z = 2.0 * gl_Position.z - gl_Position.w;\n}\n";
+  }
+#ifdef HERTZ_ES
+  src.erase(0, src.find("#version"));  // WebGL requires #version to be the very first line
+  // WebGL 2: GLSL ES 3.00 needs precisions, and has no gl_ClipDistance. The water
+  // reflection's clip plane is done by discarding pixels in the fragment shader instead.
+  src = std::regex_replace(src, std::regex("#version 450 core"),
+                           "#version 300 es\n"
+                           "precision highp float;\nprecision highp int;\n"
+                           "precision highp sampler2D;\nprecision highp sampler2DShadow;\n"
+                           "#define HERTZ_GL41\n#define HERTZ_ES");
+  if (type == GL_VERTEX_SHADER) {
+    gVertexClips = src.find("gl_ClipDistance") != std::string::npos;
+    src = std::regex_replace(src, std::regex(R"(out\s+float\s+gl_ClipDistance\s*\[\s*1\s*\]\s*;)"),
+                             "out float vClipDistance;");
+    src = std::regex_replace(src, std::regex(R"(gl_ClipDistance\s*\[\s*0\s*\])"), "vClipDistance");
+  } else if (gVertexClips) {
+    src = std::regex_replace(src, std::regex(R"(void\s+main\s*\(\s*\))"), "void hertzMain()");
+    src += "\nin float vClipDistance;\nvoid main() {\n  if (vClipDistance < 0.0) discard;\n  hertzMain();\n}\n";
+  }
+#else
+  (void)type;
   src = std::regex_replace(src, std::regex("#version 450 core"), "#version 410 core\n#define HERTZ_GL41");
+#endif
   return src;
 }
 #endif
@@ -204,8 +230,15 @@ static GLuint compileStage(const char* name, GLenum type, const std::string& src
   std::string full = std::string(kCommonGLSL) +
                      (type == GL_VERTEX_SHADER ? "#define VERTEX_SHADER\n" : "#define FRAGMENT_SHADER\n") + src;
 #ifdef HERTZ_GL41
-  full = toGLSL410(full);
+  full = toPortableGLSL(full, type, name);
 #endif
+  if (const char* dump = std::getenv("HERTZ_DUMP_SHADERS")) {
+    std::string path = std::string(dump) + "/" + name + (type == GL_VERTEX_SHADER ? ".vert" : ".frag");
+    if (FILE* f = std::fopen(path.c_str(), "w")) {
+      std::fputs(full.c_str(), f);
+      std::fclose(f);
+    }
+  }
   const char* p = full.c_str();
   glShaderSource(s, 1, &p, nullptr);
   glCompileShader(s);
@@ -250,6 +283,7 @@ GLuint compileProgram(const char* name, const std::string& vertex, const std::st
   }
   gSamplerUnits.clear();
   gBlockBindings.clear();
+  gVertexClips = false;
   glUseProgram(0);
 #endif
   return prog;

@@ -60,8 +60,13 @@ target_compile_definitions(52hertz PRIVATE
   GLM_FORCE_DEPTH_ZERO_TO_ONE)
 # macOS only has OpenGL 4.1. GL41=ON uses that path anywhere, to test it on Linux/Windows.
 option(GL41 "Use the OpenGL 4.1 code path (always on for macOS)" OFF)
-if(APPLE OR GL41)
+# Browsers have WebGL 2 (GLSL ES 3.00). ESSL=ON uses those shaders on desktop, to test them.
+option(ESSL "Use WebGL-style GLSL ES 3.00 shaders (always on for the web build)" OFF)
+if(APPLE OR GL41 OR ESSL OR EMSCRIPTEN)
   target_compile_definitions(52hertz PRIVATE HERTZ_GL41)
+endif()
+if(ESSL OR EMSCRIPTEN)
+  target_compile_definitions(52hertz PRIVATE HERTZ_ES)
 endif()
 if(PORTABLE)
   target_compile_definitions(52hertz PRIVATE ASSET_DIR="assets" PORTABLE_ASSETS)
