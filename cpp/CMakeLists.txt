@@ -31,6 +31,7 @@ add_executable(52hertz
   src/main.cpp
   src/game.cpp
   src/gameplay.cpp
+  src/my_core.cpp
   src/gl.cpp
   src/render_util.cpp
   src/whale_model.cpp

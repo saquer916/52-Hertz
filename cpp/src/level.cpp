@@ -12,11 +12,11 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+#include "maze.h"
 #include "render_util.h"
 
 namespace {
 
-// ---------------------------------------------------------------- rock noise
 struct Perlin3 {
   int perm[512];
   explicit Perlin3(unsigned seed) {
@@ -136,63 +136,6 @@ struct RockVertex {
   float pos[3];
   float normal[3];
 };
-
-constexpr int DIRS[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-
-using Cell = std::pair<int, int>;
-using Edge = std::pair<Cell, Cell>;
-
-Edge edge(Cell a, Cell b) { return a < b ? Edge{a, b} : Edge{b, a}; }
-
-std::set<Edge> carve(unsigned seed, Cell start) {
-  std::mt19937 rng(seed);
-  std::uniform_real_distribution<float> uni(0.0f, 1.0f);
-  std::set<Edge> open;
-  std::set<Cell> seen{start};
-  struct Item {
-    Cell cell;
-    int last;
-  };
-  std::vector<Item> stack{{start, -1}};
-  while (!stack.empty()) {
-    auto [cell, last] = stack.back();
-    std::vector<int> options;
-    for (int d = 0; d < 4; ++d) {
-      Cell n{cell.first + DIRS[d][0], cell.second + DIRS[d][1]};
-      if (n.first >= 0 && n.first < Level::kCols && n.second >= 0 && n.second < Level::kRows && !seen.count(n))
-        options.push_back(d);
-    }
-    if (options.empty()) {
-      stack.pop_back();
-      continue;
-    }
-    bool canContinue = std::find(options.begin(), options.end(), last) != options.end();
-    // Bias towards going straight, so the maze has long corridors.
-    int d = (canContinue && uni(rng) < 0.65f) ? last : options[rng() % options.size()];
-    Cell n{cell.first + DIRS[d][0], cell.second + DIRS[d][1]};
-    open.insert(edge(cell, n));
-    seen.insert(n);
-    stack.push_back({n, d});
-  }
-  return open;
-}
-
-std::map<Cell, int> distances(const std::set<Edge>& open, Cell start) {
-  std::map<Cell, int> dist{{start, 0}};
-  std::deque<Cell> q{start};
-  while (!q.empty()) {
-    Cell c = q.front();
-    q.pop_front();
-    for (auto& d : DIRS) {
-      Cell n{c.first + d[0], c.second + d[1]};
-      if (!dist.count(n) && open.count(edge(c, n))) {
-        dist[n] = dist[c] + 1;
-        q.push_back(n);
-      }
-    }
-  }
-  return dist;
-}
 
 }  // namespace
 
@@ -407,83 +350,4 @@ void Level::drawShadow(const glm::mat4& lightViewProj) const {
                      glm::value_ptr(lightViewProj));
   glBindVertexArray(vao_);
   glDrawElements(GL_TRIANGLES, indexCount_, GL_UNSIGNED_INT, nullptr);
-}
-
-bool Level::raycast(glm::vec3 from, glm::vec3 dir, float maxDist, RayHit& hit) const {
-  float best = maxDist;
-  bool found = false;
-  auto test = [&](const Box& b) {
-    float tmin = 0.0f, tmax = best;
-    int axis = -1;
-    float sign = 0.0f;
-    for (int a = 0; a < 3; ++a) {
-      if (std::fabs(dir[a]) < 1e-8f) {
-        if (from[a] < b.lo[a] || from[a] > b.hi[a]) return;
-        continue;
-      }
-      float inv = 1.0f / dir[a];
-      float t0 = (b.lo[a] - from[a]) * inv, t1 = (b.hi[a] - from[a]) * inv;
-      float s = -1.0f;
-      if (t0 > t1) std::swap(t0, t1), s = 1.0f;
-      if (t0 > tmin) tmin = t0, axis = a, sign = s;
-      tmax = std::min(tmax, t1);
-      if (tmin > tmax) return;
-    }
-    if (axis < 0) return;  // started inside
-    best = tmin;
-    found = true;
-    hit.t = tmin;
-    hit.pos = from + dir * tmin;
-    hit.normal = glm::vec3(0.0f);
-    hit.normal[axis] = sign;
-  };
-  for (const Box& b : walls_) test(b);
-  // Seafloor plane.
-  if (dir.y < -1e-6f) {
-    float t = (kFloorY - from.y) / dir.y;
-    if (t > 0.0f && t < best) {
-      best = t;
-      found = true;
-      hit.t = t;
-      hit.pos = from + dir * t;
-      hit.normal = glm::vec3(0, 1, 0);
-    }
-  }
-  return found;
-}
-
-bool Level::resolveSphere(glm::vec3& c, float r, glm::vec3& normal) const {
-  bool touched = false;
-  normal = glm::vec3(0.0f);
-  for (const Box& b : walls_) {
-    glm::vec3 q = glm::clamp(c, b.lo, b.hi);
-    glm::vec3 d = c - q;
-    float dist2 = glm::dot(d, d);
-    if (dist2 >= r * r) continue;
-    glm::vec3 n;
-    float push;
-    if (dist2 > 1e-8f) {
-      float dist = std::sqrt(dist2);
-      n = d / dist;
-      push = r - dist;
-    } else {
-      // Centre is inside the box: leave along the shortest way out.
-      glm::vec3 toLo = c - b.lo, toHi = b.hi - c;
-      float m = 1e9f;
-      for (int a = 0; a < 3; ++a) {
-        if (toLo[a] < m) m = toLo[a], n = glm::vec3(0.0f), n[a] = -1.0f;
-        if (toHi[a] < m) m = toHi[a], n = glm::vec3(0.0f), n[a] = 1.0f;
-      }
-      push = m + r;
-    }
-    c += n * push;
-    normal += n;
-    touched = true;
-  }
-  if (c.y < kFloorY + r) {
-    c.y = kFloorY + r;
-    normal += glm::vec3(0, 1, 0);
-    touched = true;
-  }
-  return touched;
 }

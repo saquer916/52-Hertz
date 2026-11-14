@@ -28,12 +28,8 @@ class Level {
   void drawShadow(const glm::mat4& lightViewProj) const;
 
   bool raycast(glm::vec3 from, glm::vec3 dir, float maxDist, RayHit& hit) const;
-  // Pushes a sphere out of walls and the floor. Returns true if it touched anything;
-  // `normal` gets the summed push directions.
   bool resolveSphere(glm::vec3& center, float radius, glm::vec3& normal) const;
-  // How far the rocky surface sticks out of the flat collision box at a point.
   static float rockOffset(glm::vec3 p);
-  // Height of the (gently rolling) seafloor you see.
   static float floorHeight(float x, float z);
 
   glm::vec3 start{0.0f, -10.0f, 0.0f};
