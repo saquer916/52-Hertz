@@ -46,28 +46,11 @@ cmake --build cpp/build
 
 See [`cpp/README.md`](cpp/README.md) for macOS, the browser build and packaging for itch.io.
 
-## Who wrote what
-
-- **Written by Vihan:** the gameplay ([`cpp/src/gameplay.cpp`](cpp/src/gameplay.cpp)):
-  echolocation, breathing and bounce-back, breaching and winning. Also the chase camera
-  (`Game::snapCamera` and `Game::updateCamera` in [`cpp/src/game.cpp`](cpp/src/game.cpp)),
-  the raycast against the maze (`Level::raycast` in [`cpp/src/level.cpp`](cpp/src/level.cpp)),
-  and the difficulty tuning.
-- **AI-assisted:** the engine (rendering, ocean, whale model and swimming, maze generation,
-  effects, HUD) was adapted from an AI-generated (Claude) prototype. AI also helped port it
-  to the browser (WebGL) and macOS.
-- **Not AI:** the whale model is a Creative Commons model (credited below).
-
-## Godot prototype
-
-The first version was made in Godot 4.7. It's still at the repo root (`project.godot`,
-`scenes/`, `scripts/`, `ocean/`). To run it, open `project.godot` in Godot 4.7 and press F5.
-
 ## Credits
 
 - Humpback whale model: based on ["Humpback Whale (Idle)"](https://sketchfab.com/3d-models/humpback-whale-idle-bd64878acb0844b2be796ee91855c69e) by [Connlan_Immure](https://sketchfab.com/Connlan_Immure), licensed under [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/).
 - Libraries (C++ version): [GLFW](https://www.glfw.org/) (zlib), [glm](https://github.com/g-truc/glm) (MIT), [cgltf](https://github.com/jkuhlmann/cgltf) (MIT), [stb](https://github.com/nothings/stb) (MIT / public domain).
-- Godot prototype only:
+- Used by the Godot version in this repo:
   - Ocean simulation: [GodotOceanWaves](https://github.com/2Retr0/GodotOceanWaves) by 2Retr0 (MIT). See [`ocean/README.md`](ocean/README.md).
   - Sky: [Evening Road 01 (Pure Sky)](https://polyhaven.com/a/evening_road_01_puresky) by Jarod Guest, Poly Haven (CC0).
   - Orca model: based on ["Killer Whale"](https://sketchfab.com/3d-models/killer-whale-63b680d7e58f463a9868ed7bf163094a) by [Abner Wu](https://sketchfab.com/dashdu), licensed under [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/).

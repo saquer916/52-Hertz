@@ -3,16 +3,6 @@
 The C++ version of 52 Hertz, made at Hack Club Haven Boston (theme: Bounce Back).
 The Godot project at the repo root was the first prototype.
 
-## Who wrote what
-
-- **Gameplay** ([`src/gameplay.cpp`](src/gameplay.cpp)): echolocation, breathing and
-  bounce-back, breaching, and winning. Written by Vihan.
-- **Camera and raycast** (`Game::snapCamera` and `Game::updateCamera` in [`src/game.cpp`](src/game.cpp),
-  `Level::raycast` in [`src/level.cpp`](src/level.cpp)) and the difficulty tuning. Written by Vihan.
-- **Engine** (the rest of `src/`: rendering, ocean, whale model and swimming, maze generation,
-  effects, HUD): adapted from an AI-generated (Claude) prototype. AI also helped port it to the
-  browser (WebGL) and macOS.
-
 ## Build and run
 
 Needs CMake, a C++20 compiler and OpenGL 4.5. GLFW and glm are used from the system
