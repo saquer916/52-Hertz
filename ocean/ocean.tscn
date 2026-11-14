@@ -11,45 +11,45 @@
 
 [sub_resource type="Resource" id="Cascade_swell"]
 script = ExtResource("3_params")
-tile_length = Vector2(88, 88)
-displacement_scale = 1.0
+tile_length = Vector2(256, 256)
+displacement_scale = 0.6
 normal_scale = 1.0
 wind_speed = 10.0
 wind_direction = 20.0
-fetch_length = 150.0
-swell = 0.8
-spread = 0.2
-detail = 1.0
-whitecap = 0.5
-foam_amount = 8.0
+fetch_length = 1500.0
+swell = 1.6
+spread = 0.1
+detail = 0.5
+whitecap = 1.0
+foam_amount = 0.8
 
 [sub_resource type="Resource" id="Cascade_chop"]
 script = ExtResource("3_params")
-tile_length = Vector2(57, 57)
-displacement_scale = 0.75
-normal_scale = 1.0
-wind_speed = 5.0
-wind_direction = 15.0
-fetch_length = 150.0
-swell = 0.8
-spread = 0.4
-detail = 1.0
-whitecap = 0.5
+tile_length = Vector2(64, 64)
+displacement_scale = 0.3
+normal_scale = 0.6
+wind_speed = 6.0
+wind_direction = 25.0
+fetch_length = 800.0
+swell = 1.2
+spread = 0.3
+detail = 0.5
+whitecap = 1.2
 foam_amount = 0.0
 
 [sub_resource type="Resource" id="Cascade_ripples"]
 script = ExtResource("3_params")
 tile_length = Vector2(16, 16)
 displacement_scale = 0.0
-normal_scale = 0.25
-wind_speed = 20.0
+normal_scale = 0.35
+wind_speed = 8.0
 wind_direction = 20.0
-fetch_length = 550.0
-swell = 0.8
+fetch_length = 500.0
+swell = 1.0
 spread = 0.4
 detail = 1.0
-whitecap = 0.25
-foam_amount = 3.0
+whitecap = 1.0
+foam_amount = 0.0
 
 [sub_resource type="FastNoiseLite" id="SprayNoise"]
 
@@ -76,6 +76,7 @@ cast_shadow = 0
 mesh = ExtResource("5_clipmap")
 skeleton = NodePath("")
 script = ExtResource("2_water")
+foam_color = Color(0.88, 0.92, 0.95, 1)
 map_size = 512
 updates_per_second = 30.0
 parameters = Array[ExtResource("3_params")]([SubResource("Cascade_swell"), SubResource("Cascade_chop"), SubResource("Cascade_ripples")])
