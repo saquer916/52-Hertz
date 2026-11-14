@@ -58,6 +58,11 @@ target_link_libraries(52hertz PRIVATE glfw glm::glm)
 target_compile_definitions(52hertz PRIVATE
   GLFW_INCLUDE_NONE
   GLM_FORCE_DEPTH_ZERO_TO_ONE)
+# macOS only has OpenGL 4.1. GL41=ON uses that path anywhere, to test it on Linux/Windows.
+option(GL41 "Use the OpenGL 4.1 code path (always on for macOS)" OFF)
+if(APPLE OR GL41)
+  target_compile_definitions(52hertz PRIVATE HERTZ_GL41)
+endif()
 if(PORTABLE)
   target_compile_definitions(52hertz PRIVATE ASSET_DIR="assets" PORTABLE_ASSETS)
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

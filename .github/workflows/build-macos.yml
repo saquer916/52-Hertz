@@ -1,0 +1,39 @@
+# Builds the Mac version of the C++ game on GitHub's free macOS machines.
+# Download it from the run's "Artifacts" section (Actions tab), then upload the zip to itch.io.
+name: Build macOS
+
+on:
+  push:
+    paths:
+      - "cpp/**"
+      - "assets/models/humpback_whale/**"
+      - ".github/workflows/build-macos.yml"
+  workflow_dispatch:
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build (universal: Apple Silicon + Intel)
+        run: |
+          cmake -S cpp -B build -DPORTABLE=ON -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+          cmake --build build -j 4
+          lipo -info build/52hertz
+
+      - name: Package
+        run: |
+          out=dist/52-Hertz-macos
+          mkdir -p "$out/assets"
+          cp build/52hertz "$out/"
+          cp -R assets/models/humpback_whale "$out/assets/"
+          find "$out" -name '*.import' -delete
+          cp cpp/README.md "$out/README.md"
+          cp LICENSE "$out/LICENSE.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 52-Hertz-macos
+          path: dist/52-Hertz-macos

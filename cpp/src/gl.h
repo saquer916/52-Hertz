@@ -55,6 +55,8 @@
   X(PFNGLGETPROGRAMINFOLOGPROC, glGetProgramInfoLog)                           \
   X(PFNGLUSEPROGRAMPROC, glUseProgram)                                         \
   X(PFNGLGETUNIFORMLOCATIONPROC, glGetUniformLocation)                         \
+  X(PFNGLGETUNIFORMBLOCKINDEXPROC, glGetUniformBlockIndex)                     \
+  X(PFNGLUNIFORMBLOCKBINDINGPROC, glUniformBlockBinding)                       \
   X(PFNGLUNIFORM1IPROC, glUniform1i)                                           \
   X(PFNGLUNIFORM1FPROC, glUniform1f)                                           \
   X(PFNGLUNIFORM2FPROC, glUniform2f)                                           \

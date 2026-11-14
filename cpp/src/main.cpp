@@ -214,7 +214,7 @@ void mouseButtonCallback(GLFWwindow* win, int, int action, int) {
   }
 }
 
-void APIENTRY glDebug(GLenum, GLenum type, GLuint, GLenum severity, GLsizei, const GLchar* msg, const void*) {
+[[maybe_unused]] void APIENTRY glDebug(GLenum, GLenum type, GLuint, GLenum severity, GLsizei, const GLchar* msg, const void*) {
   if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) return;
   if (type == GL_DEBUG_TYPE_ERROR) std::fprintf(stderr, "GL error: %s\n", msg);
 }
@@ -281,14 +281,18 @@ int main(int argc, char** argv) {
     return 1;
   }
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+#ifdef HERTZ_GL41
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);  // the newest OpenGL macOS has
+#else
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+#endif
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
   if (scripted) glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);  // render offscreen, don't pop up a window
   GLFWwindow* win = glfwCreateWindow(opt.width, opt.height, "52 Hertz", nullptr, nullptr);
   if (!win) {
-    std::fprintf(stderr, "Could not open an OpenGL 4.5 window\n");
+    std::fprintf(stderr, "Could not open an OpenGL window (this game needs OpenGL 4.5, or 4.1 on macOS)\n");
     glfwTerminate();
     return 1;
   }
@@ -297,8 +301,10 @@ int main(int argc, char** argv) {
     std::fprintf(stderr, "OpenGL function %s is missing\n", missing);
     return 1;
   }
+#ifndef HERTZ_GL41
   glEnable(GL_DEBUG_OUTPUT);
   glDebugMessageCallback(glDebug, nullptr);
+#endif
   std::printf("OpenGL %s on %s\n", (const char*)glGetString(GL_VERSION), (const char*)glGetString(GL_RENDERER));
   glfwSwapInterval(opt.benchmark > 0 ? 0 : 1);
 

@@ -1,5 +1,10 @@
 #include "render_util.h"
 
+#include <regex>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -85,6 +90,9 @@ vec3 skyColor(vec3 d, bool withSunDisc) {
 float sunShadow(vec3 p, vec3 n) {
   vec4 s = uShadowMat * vec4(p + n * 0.25, 1.0);
   if (s.x < 0.0 || s.x > 1.0 || s.y < 0.0 || s.y > 1.0 || s.z > 1.0) return 1.0;
+#ifdef HERTZ_GL41
+  s.z = s.z * 0.5 + 0.5;  // no glClipControl: the shadow map stored depth as z * 0.5 + 0.5
+#endif
   vec2 texel = vec2(1.0 / 2048.0);
   float sum = texture(uShadowMap, vec3(s.xy, s.z - 0.0008));
   sum += texture(uShadowMap, vec3(s.xy + vec2(1.5, 0.5) * texel, s.z - 0.0008));
@@ -172,10 +180,32 @@ float caustics(vec3 p) {
 }
 )GLSL";
 
+#ifdef HERTZ_GL41
+// macOS stops at OpenGL 4.1, which has no `layout(binding = N)` in GLSL. Strip those
+// qualifiers and remember them, so compileProgram can assign the same units from C++.
+static std::vector<std::pair<std::string, int>> gSamplerUnits, gBlockBindings;
+
+static std::string toGLSL410(std::string src) {
+  static const std::regex sampler(R"(layout\s*\(\s*binding\s*=\s*(\d+)\s*\)\s*uniform\s+(\w+)\s+(\w+))");
+  static const std::regex block(R"(layout\s*\(\s*std140\s*,\s*binding\s*=\s*(\d+)\s*\)\s*uniform\s+(\w+))");
+  for (std::sregex_iterator it(src.begin(), src.end(), sampler), end; it != end; ++it)
+    gSamplerUnits.emplace_back((*it)[3], std::stoi((*it)[1]));
+  for (std::sregex_iterator it(src.begin(), src.end(), block), end; it != end; ++it)
+    gBlockBindings.emplace_back((*it)[2], std::stoi((*it)[1]));
+  src = std::regex_replace(src, sampler, "uniform $2 $3");
+  src = std::regex_replace(src, block, "layout(std140) uniform $2");
+  src = std::regex_replace(src, std::regex("#version 450 core"), "#version 410 core\n#define HERTZ_GL41");
+  return src;
+}
+#endif
+
 static GLuint compileStage(const char* name, GLenum type, const std::string& src) {
   GLuint s = glCreateShader(type);
   std::string full = std::string(kCommonGLSL) +
                      (type == GL_VERTEX_SHADER ? "#define VERTEX_SHADER\n" : "#define FRAGMENT_SHADER\n") + src;
+#ifdef HERTZ_GL41
+  full = toGLSL410(full);
+#endif
   const char* p = full.c_str();
   glShaderSource(s, 1, &p, nullptr);
   glCompileShader(s);
@@ -208,6 +238,20 @@ GLuint compileProgram(const char* name, const std::string& vertex, const std::st
   }
   glDeleteShader(vs);
   glDeleteShader(fs);
+#ifdef HERTZ_GL41
+  glUseProgram(prog);
+  for (auto& [uniform, unit] : gSamplerUnits) {
+    GLint loc = glGetUniformLocation(prog, uniform.c_str());
+    if (loc >= 0) glUniform1i(loc, unit);
+  }
+  for (auto& [blockName, binding] : gBlockBindings) {
+    GLuint index = glGetUniformBlockIndex(prog, blockName.c_str());
+    if (index != GL_INVALID_INDEX) glUniformBlockBinding(prog, index, binding);
+  }
+  gSamplerUnits.clear();
+  gBlockBindings.clear();
+  glUseProgram(0);
+#endif
   return prog;
 }
 

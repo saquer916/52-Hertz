@@ -21,6 +21,13 @@ cmake --build build
 ./build/52hertz
 ```
 
+### macOS
+
+macOS only has OpenGL 4.1, so the Mac build uses a 4.1 code path (`HERTZ_GL41`; build with
+`-DGL41=ON` to try it on Linux or Windows). GitHub Actions builds it: see
+`.github/workflows/build-macos.yml`. The app isn't signed, so the first time, **right-click the
+`52hertz` file > Open**, or run `xattr -dr com.apple.quarantine` on the unzipped folder.
+
 ## Controls
 
 | Input | Action |
