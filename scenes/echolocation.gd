@@ -3,6 +3,7 @@ extends Node3D
 var holdTime := 0.0;
 var pendingRays := 0;
 var pendingReach := 0.0;
+var pendingCone := 180.0;  # half-angle of the beam in degrees (180 = every direction)
 
 
 func _process(delta: float) -> void:
@@ -12,11 +13,15 @@ func _process(delta: float) -> void:
 		holdTime += delta
 	if (Input.is_action_just_released("echo")):
 		var strength = clampf(holdTime/1.2, 0, 1)
-		var reach = lerpf(30, 150, strength)
-		var rayCount = int(lerpf(200, 1000, strength))
-		print("echo! ", strength, " ", reach, " ", rayCount)
+		var reach = lerpf(30, 160, strength)
+		var rayCount = int(lerpf(250, 1200, strength))
+		# A tap clicks in every direction; a long call is a narrow beam straight ahead,
+		# so its rays stay packed together even on far-away walls.
+		var cone = lerpf(180, 30, strength)
+		print("echo! ", strength, " ", reach, " ", rayCount, " ", cone)
 		pendingRays = rayCount;
 		pendingReach = reach;
+		pendingCone = cone;
 	# Dots get lighter the closer the whale is, so keep the shader told where we are.
 	dotMesh.material.set_shader_parameter("whale_position", global_position);
 
@@ -26,7 +31,7 @@ func _physics_process(delta: float) -> void:
 	var space := get_world_3d().direct_space_state;
 	var hits := 0;
 	for i in pendingRays:
-		var direction = Vector3(randf_range(-1,1), randf_range(-1, 1), randf_range(-1, 1)).normalized();
+		var direction = random_direction_in_cone(pendingCone);
 		var query := PhysicsRayQueryParameters3D.create(global_position, global_position + direction * pendingReach);
 		query.exclude = [get_parent().get_rid()];
 		var hit := space.intersect_ray(query);
@@ -35,7 +40,16 @@ func _physics_process(delta: float) -> void:
 			spawn_dot(hit.position, pendingReach);
 	print("hits: ", hits, " / ", pendingRays);
 	pendingRays = 0;
-	
+
+# A random direction within `half_angle` degrees of where the whale is facing,
+# spread evenly over the cone (180 degrees = anywhere on a full sphere).
+func random_direction_in_cone(half_angle: float) -> Vector3:
+	var cos_angle := lerpf(1.0, cos(deg_to_rad(half_angle)), randf());
+	var sin_angle := sqrt(1.0 - cos_angle * cos_angle);
+	var spin := randf() * TAU;
+	var local := Vector3(sin_angle * cos(spin), sin_angle * sin(spin), -cos_angle);  # -Z is forward
+	return global_basis * local;
+
 var dotMesh : SphereMesh;
 
 func _ready() -> void:
