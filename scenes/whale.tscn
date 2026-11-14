@@ -45,8 +45,8 @@ script = ExtResource("2_upqel")
 top_level = true
 current = true
 script = ExtResource("3_camera")
-distance = 22.0
-height = 5.0
+distance = 12.0
+height = 3.5
 
 [node name="UnderwaterView" type="Node" parent="ChaseCamera"]
 script = ExtResource("6_underwater")
