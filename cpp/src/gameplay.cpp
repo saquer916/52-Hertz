@@ -5,7 +5,7 @@
 #include "game.h"
 
 namespace {
-constexpr float kBreathSeconds = 40.0f;
+constexpr float kBreathSeconds = 50.0f;
 constexpr float kRefillSeconds = 2.5f;
 constexpr float kBreathLine = -3.0f;
 }
@@ -60,7 +60,7 @@ void Game::updateBreath(float dt) {
     if (breath_ > 1) breath_ = 1;
   }
   else {
-    breath_ -= dt / kBreathSeconds * std::max(1.0f, whale_.speed / Whale::kCruise);
+    breath_ -= dt / kBreathSeconds;
     if (breath_ <= 0) startBounceBack();
   }
 }
