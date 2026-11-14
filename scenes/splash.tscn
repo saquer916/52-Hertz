@@ -1,0 +1,104 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/splash.gd" id="1_splash"]
+
+[sub_resource type="Gradient" id="SoftDot"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.55, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="SoftDotTexture"]
+gradient = SubResource("SoftDot")
+width = 64
+height = 64
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="WaterMaterial"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.9, 0.96, 1, 1)
+albedo_texture = SubResource("SoftDotTexture")
+billboard_mode = 3
+billboard_keep_scale = true
+proximity_fade_enabled = true
+proximity_fade_distance = 1.5
+
+[sub_resource type="QuadMesh" id="DropQuad"]
+material = SubResource("WaterMaterial")
+size = Vector2(0.7, 0.7)
+
+[sub_resource type="QuadMesh" id="FoamQuad"]
+material = SubResource("WaterMaterial")
+size = Vector2(2.2, 2.2)
+
+[sub_resource type="Gradient" id="Fade"]
+offsets = PackedFloat32Array(0, 0.6, 1)
+colors = PackedColorArray(1, 1, 1, 0.95, 1, 1, 1, 0.55, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="FadeRamp"]
+gradient = SubResource("Fade")
+
+[sub_resource type="Curve" id="Grow"]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 1.6), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="GrowTexture"]
+curve = SubResource("Grow")
+
+[sub_resource type="ParticleProcessMaterial" id="SprayMotion"]
+emission_shape = 1
+emission_sphere_radius = 3.0
+direction = Vector3(0, 1, 0)
+spread = 30.0
+initial_velocity_min = 6.0
+initial_velocity_max = 16.0
+gravity = Vector3(0, -9.8, 0)
+damping_min = 0.5
+damping_max = 1.5
+scale_min = 0.6
+scale_max = 2.0
+scale_curve = SubResource("GrowTexture")
+color_ramp = SubResource("FadeRamp")
+
+[sub_resource type="ParticleProcessMaterial" id="FoamMotion"]
+emission_shape = 1
+emission_sphere_radius = 2.0
+direction = Vector3(1, 0, 0)
+spread = 180.0
+flatness = 1.0
+initial_velocity_min = 3.0
+initial_velocity_max = 9.0
+gravity = Vector3(0, 0, 0)
+damping_min = 2.0
+damping_max = 4.0
+scale_min = 1.0
+scale_max = 2.5
+scale_curve = SubResource("GrowTexture")
+color_ramp = SubResource("FadeRamp")
+
+[node name="Splash" type="Node3D"]
+script = ExtResource("1_splash")
+
+[node name="Spray" type="GPUParticles3D" parent="."]
+emitting = false
+amount = 500
+lifetime = 2.2
+one_shot = true
+explosiveness = 0.85
+randomness = 0.4
+visibility_aabb = AABB(-25, -10, -25, 50, 45, 50)
+process_material = SubResource("SprayMotion")
+draw_pass_1 = SubResource("DropQuad")
+
+[node name="Foam" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+emitting = false
+amount = 160
+lifetime = 3.0
+one_shot = true
+explosiveness = 0.95
+visibility_aabb = AABB(-25, -5, -25, 50, 10, 50)
+process_material = SubResource("FoamMotion")
+draw_pass_1 = SubResource("FoamQuad")

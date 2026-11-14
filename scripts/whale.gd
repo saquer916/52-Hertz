@@ -105,6 +105,5 @@ func _physics_process(delta: float) -> void:
 		velocity = -global_basis.z * speed
 	else:
 		velocity.y -= 9.8 * delta;
-		velocity = -global_basis.z * speed
 
 	move_and_slide()
