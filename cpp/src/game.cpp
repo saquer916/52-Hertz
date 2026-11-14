@@ -279,26 +279,6 @@ void Game::updateWhale(float dt, const InputState& in) {
   w.swim.update(dt, w.speed, Whale::kBoost, w.turnRate);
 }
 
-void Game::snapCamera() {
-  glm::mat3 b = whale_.basis();
-  camPos_ = whale_.pos + b * glm::vec3(0, 3.5f, 12.0f);
-  camAim_ = whale_.pos + whale_.forward() * 8.0f;
-}
-
-void Game::updateCamera(float dt) {
-  // 12 m behind and 3.5 m above, smoothed; pulled in if a wall is in the way.
-  glm::mat3 b = whale_.basis();
-  glm::vec3 desired = whale_.pos + b * glm::vec3(0, 3.5f, 12.0f);
-  glm::vec3 d = desired - whale_.pos;
-  float len = glm::length(d);
-  RayHit hit;
-  if (len > 1e-3f && level_.raycast(whale_.pos, d / len, len, hit)) desired = hit.pos + hit.normal * 0.5f;
-  camPos_ += (desired - camPos_) * (1.0f - std::exp(-4.0f * dt));
-  glm::vec3 n;
-  level_.resolveSphere(camPos_, 0.4f, n);
-  camAim_ = whale_.pos + whale_.forward() * 8.0f;
-}
-
 void Game::castEcho(float hold) {
   Echo::Call call = Echo::callFor(hold);
   glm::vec3 origin = whale_.head();
@@ -328,7 +308,6 @@ void Game::podWhale(int i, glm::vec3& pos, float& yaw) const {
   yaw = 3.14159265f - a;
 }
 
-// ------------------------------------------------------------------ render
 
 void Game::render() {
   glm::vec3 up(0, 1, 0);
@@ -547,7 +526,6 @@ void Game::drawHud() {
   std::snprintf(buf, sizeof buf, "SPEED  %.0f m/s", whale_.speed);
   hud_.text(glm::vec2(22.0f * s, 44.0f * s), buf, 2.0f * s, glm::vec4(0.8f, 0.9f, 1.0f, 0.6f));
 
-  // Call charge ring while Space is held.
   if (echoHeld_) {
     float k = std::clamp(holdTime_ / 1.2f, 0.0f, 1.0f);
     glm::vec2 rc(c.x + 190.0f * s, height_ - 40.0f * s);
@@ -557,7 +535,6 @@ void Game::drawHud() {
               glm::vec4(0.75f, 0.92f, 1.0f, 0.85f), Hud::Left);
   }
 
-  // Title for the first few seconds.
   if (time_ < 8.0f) {
     float a = std::clamp(8.0f - time_, 0.0f, 1.0f) * std::clamp(time_ * 1.5f, 0.0f, 1.0f);
     hud_.text(glm::vec2(c.x, height_ * 0.14f), "52 HERTZ", 7.0f * s, glm::vec4(0.9f, 0.96f, 1.0f, a), Hud::Center);
@@ -577,6 +554,23 @@ void Game::drawHud() {
   hud_.text(glm::vec2(width_ - 22.0f * s, 22.0f * s), "Mouse steer  W boost  S slow  Space echo  Esc mouse", 1.6f * s,
             glm::vec4(0.8f, 0.9f, 1.0f, 0.45f), Hud::Right);
   hud_.end();
+}
+
+void Game::snapCamera() {
+  camPos_ = whale_.pos + whale_.basis() * glm::vec3(0, 3.5f, 12.0f);
+  camAim_ = whale_.pos + whale_.forward() * 8.0f;
+}
+
+void Game::updateCamera(float dt) {
+  glm::vec3 desired = whale_.pos + whale_.basis() * glm::vec3(0, 3.5f, 12.0f);
+  glm::vec3 d = desired - whale_.pos;
+  float len = glm::length(d);
+  RayHit hit;
+  if (len > 0.001f && level_.raycast(whale_.pos, d/len, len, hit)) desired = hit.pos + hit.normal * 0.5f;
+  camPos_ += (desired - camPos_) * (1.0f - std::exp(-4.0f * dt));
+  glm::vec3 n;
+  level_.resolveSphere(camPos_, 0.4f, n);
+  camAim_  = whale_.pos + whale_.forward() * 8.0f;
 }
 
 std::string Game::status() const {

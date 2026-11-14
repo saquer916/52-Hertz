@@ -30,6 +30,7 @@ class Level {
   bool raycast(glm::vec3 from, glm::vec3 dir, float maxDist, RayHit& hit) const;
   bool resolveSphere(glm::vec3& center, float radius, glm::vec3& normal) const;
   static float rockOffset(glm::vec3 p);
+  // Height of the (gently rolling) seafloor you see.
   static float floorHeight(float x, float z);
 
   glm::vec3 start{0.0f, -10.0f, 0.0f};
