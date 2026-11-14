@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://b2kt61os643r6" path="res://scripts/chase_camera.gd" id="3_camera"]
 [ext_resource type="PackedScene" path="res://assets/models/killer_whale/scene.gltf" id="4_orca"]
 [ext_resource type="Script" path="res://scripts/swim_motion.gd" id="5_swim"]
+[ext_resource type="Script" path="res://scripts/underwater_view.gd" id="6_underwater"]
 
 [sub_resource type="CapsuleShape3D" id="BodyShape"]
 radius = 1.0
@@ -35,3 +36,6 @@ current = true
 script = ExtResource("3_camera")
 distance = 13.0
 height = 3.0
+
+[node name="UnderwaterView" type="Node" parent="ChaseCamera"]
+script = ExtResource("6_underwater")

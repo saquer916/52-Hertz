@@ -17,7 +17,9 @@ func _process(delta: float) -> void:
 		print("echo! ", strength, " ", reach, " ", rayCount)
 		pendingRays = rayCount;
 		pendingReach = reach;
-	
+	# Dots get lighter the closer the whale is, so keep the shader told where we are.
+	dotMesh.material.set_shader_parameter("whale_position", global_position);
+
 func _physics_process(delta: float) -> void:
 	if (pendingRays == 0):
 		return;
@@ -42,20 +44,21 @@ func _ready() -> void:
 	dotMesh.height = 0.3;
 	dotMesh.radial_segments = 6;
 	dotMesh.rings = 3;
-	var mat := StandardMaterial3D.new();
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED;
-	mat.albedo_color = Color(0.6, 0.9, 1.0);
+	var mat := ShaderMaterial.new();
+	mat.shader = preload("res://shaders/echo_dot.gdshader");
 	dotMesh.material = mat;
-	
+
 func spawn_dot(where: Vector3, reach: float) -> void:
 	var dot := MeshInstance3D.new();
 	dot.mesh = dotMesh;
+	dot.transparency = 1.0;  # start invisible, then fade in
 	get_tree().current_scene.add_child(dot);
 	dot.global_position = where;
 	var distance := where.distance_to(global_position);
-	dot.transparency = clampf(distance / reach, 0.0, 0.85);
-	
+
 	var tw := dot.create_tween();
-	tw.tween_property(dot, "transparency", 1.0, 5.0);
+	tw.tween_interval(distance / 60.0);  # far echoes take longer to come back
+	tw.tween_property(dot, "transparency", 0.0, 0.8);  # slow fade in
+	tw.tween_property(dot, "transparency", 1.0, 5.0);  # then fade out
 	tw.tween_callback(dot.queue_free);
 	
