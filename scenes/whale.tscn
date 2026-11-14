@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://caif2hv1g1fx6" path="res://scenes/echolocation.gd" id="2_upqel"]
 [ext_resource type="Script" uid="uid://b2kt61os643r6" path="res://scripts/chase_camera.gd" id="3_camera"]
 [ext_resource type="PackedScene" path="res://assets/models/killer_whale/scene.gltf" id="4_orca"]
+[ext_resource type="Script" path="res://scripts/swim_motion.gd" id="5_swim"]
 
 [sub_resource type="CapsuleShape3D" id="BodyShape"]
 radius = 1.0
@@ -19,6 +20,7 @@ transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
 shape = SubResource("BodyShape")
 
 [node name="Model" type="Node3D" parent="." unique_id=1699720965]
+script = ExtResource("5_swim")
 
 [node name="Orca" parent="Model" instance=ExtResource("4_orca")]
 transform = Transform3D(-0.0092391, 0, 0, 0, 0.0092391, 0, 0, 0, -0.0092391, 0, -0.106, -4.212)

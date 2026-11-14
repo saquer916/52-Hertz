@@ -31,8 +31,6 @@ var speed := 0.0
 var is_underwater := true
 
 @onready var model: Node3D = $Model
-## The imported model's swim cycle, if it has one.
-@onready var swim_animation: AnimationPlayer = model.find_child("AnimationPlayer", true, false)
 
 
 func _ready() -> void:
@@ -41,17 +39,6 @@ func _ready() -> void:
 	speed = cruise_speed
 	is_underwater = global_position.y < water_level
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	_start_swim_animation()
-
-
-func _start_swim_animation() -> void:
-	if swim_animation == null:
-		return
-	for anim_name in swim_animation.get_animation_list():
-		if anim_name != "RESET":
-			swim_animation.get_animation(anim_name).loop_mode = Animation.LOOP_LINEAR
-			swim_animation.play(anim_name)
-			return
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -75,9 +62,6 @@ func _physics_process(delta: float) -> void:
 	elif Input.is_action_pressed("slow"):
 		target_speed = slow_speed
 	speed = move_toward(speed, target_speed, acceleration * delta)
-	if swim_animation:
-		# Tail beats faster when swimming faster.
-		swim_animation.speed_scale = clampf(speed / cruise_speed, 0.4, 2.0)
 
 	# Ease the body toward where the mouse is pointing, so turns feel heavy.
 	var t := 1.0 - exp(-turn_responsiveness * delta)
