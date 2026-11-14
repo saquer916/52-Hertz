@@ -9,8 +9,17 @@ endif()
 
 include(FetchContent)
 
+# PORTABLE=ON makes a self-contained build to share (tools/package.sh uses it):
+# GLFW is built into the game, and assets are loaded from next to the program.
+option(PORTABLE "Self-contained build for sharing" OFF)
+if(PORTABLE)
+  set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+endif()
+
 # GLFW and glm: use the system copies when installed, otherwise fetch them.
-find_package(glfw3 3.3 QUIET)
+if(NOT PORTABLE)
+  find_package(glfw3 3.3 QUIET)
+endif()
 if(NOT glfw3_FOUND)
   message(STATUS "GLFW not found on the system, fetching it")
   set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -20,7 +29,9 @@ if(NOT glfw3_FOUND)
   FetchContent_MakeAvailable(glfw)
 endif()
 
-find_package(glm QUIET)
+if(NOT PORTABLE)
+  find_package(glm QUIET)
+endif()
 if(NOT glm_FOUND)
   message(STATUS "glm not found on the system, fetching it")
   FetchContent_Declare(glm GIT_REPOSITORY https://github.com/g-truc/glm.git GIT_TAG 1.0.1)
@@ -47,8 +58,15 @@ target_include_directories(52hertz PRIVATE src third_party)
 target_link_libraries(52hertz PRIVATE glfw glm::glm)
 target_compile_definitions(52hertz PRIVATE
   GLFW_INCLUDE_NONE
-  GLM_FORCE_DEPTH_ZERO_TO_ONE
-  ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../assets/models")
+  GLM_FORCE_DEPTH_ZERO_TO_ONE)
+if(PORTABLE)
+  target_compile_definitions(52hertz PRIVATE ASSET_DIR="assets" PORTABLE_ASSETS)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_link_options(52hertz PRIVATE -static-libstdc++ -static-libgcc)
+  endif()
+else()
+  target_compile_definitions(52hertz PRIVATE ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../assets/models")
+endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   target_compile_options(52hertz PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers)
 endif()

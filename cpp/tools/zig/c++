@@ -1,0 +1,3 @@
+#!/bin/sh
+# C++ compiler wrapper: Zig cross-compiling for $ZIG_TARGET (set by the toolchain file).
+exec zig c++ -target "${ZIG_TARGET:-x86_64-windows-gnu}" "$@"

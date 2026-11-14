@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <filesystem>
 #include <cstdlib>
 #include <cstring>
 #include <functional>
@@ -220,7 +221,21 @@ void APIENTRY glDebug(GLenum, GLenum type, GLuint, GLenum severity, GLsizei, con
 
 }  // namespace
 
+// Shared builds keep their assets next to the program, so start there.
+static void startInProgramFolder(const char* argv0) {
+#ifdef PORTABLE_ASSETS
+  namespace fs = std::filesystem;
+  std::error_code ec;
+  fs::path exe = fs::read_symlink("/proc/self/exe", ec);  // Linux
+  if (ec) exe = fs::absolute(argv0, ec);                 // Windows and others
+  if (!ec) fs::current_path(exe.parent_path(), ec);
+#else
+  (void)argv0;
+#endif
+}
+
 int main(int argc, char** argv) {
+  startInProgramFolder(argv[0]);
   Options opt;
   for (int i = 1; i < argc; ++i) {
     std::string a = argv[i];
