@@ -80,7 +80,6 @@ if(EMSCRIPTEN)
   target_link_options(52hertz PRIVATE
     -sUSE_GLFW=3 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES3=1
     -sGL_ENABLE_GET_PROC_ADDRESS=1 -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=256MB
-    --profiling-funcs -sASSERTIONS=1
     --preload-file ${CMAKE_CURRENT_SOURCE_DIR}/../assets/models/humpback_whale@/assets/humpback_whale
     --exclude-file *.import
     --shell-file ${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html)

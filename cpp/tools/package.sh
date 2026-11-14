@@ -2,7 +2,9 @@
 # Builds shareable zips for itch.io:
 #   dist/52-Hertz-linux.zip    (built here; runs on up-to-date Linux)
 #   dist/52-Hertz-windows.zip  (cross-compiled with Zig: `sudo pacman -S zig`)
-# Each has the game, the whale model, the README and the licenses.
+#   dist/52-Hertz-web.zip      (Emscripten: `sudo pacman -S emscripten`; upload as "played in the browser")
+#   dist/52-Hertz-macos.zip    (downloaded from the latest GitHub Actions "Build macOS" run, if `gh` can)
+# The download zips have the game, the whale model, the README and the licenses.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$(pwd)
@@ -30,3 +32,23 @@ cmake -S . -B build-windows -DPORTABLE=ON -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_TOOLCHAIN_FILE="$ROOT/tools/windows-toolchain.cmake" > /dev/null
 cmake --build build-windows -j"$(nproc)"
 stage 52-Hertz-windows build-windows/52hertz.exe
+
+echo "== Web =="
+export PATH="/usr/lib/emscripten:$PATH"
+emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release > /dev/null
+cmake --build build-web -j"$(nproc)"
+rm -rf dist/web && mkdir -p dist/web
+cp build-web/52hertz.html dist/web/index.html  # itch.io opens index.html
+cp build-web/52hertz.js build-web/52hertz.wasm build-web/52hertz.data dist/web/
+(cd dist/web && bsdtar -a -cf "$ROOT/dist/52-Hertz-web.zip" .)
+echo "made dist/52-Hertz-web.zip ($(du -h dist/52-Hertz-web.zip | cut -f1))"
+
+echo "== macOS (from GitHub Actions) =="
+if run=$(gh run list --workflow build-macos.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId' 2>/dev/null) && [ -n "$run" ]; then
+  rm -rf dist/52-Hertz-macos && gh run download "$run" --name 52-Hertz-macos --dir dist/52-Hertz-macos
+  chmod +x dist/52-Hertz-macos/52hertz
+  (cd dist/52-Hertz-macos && bsdtar -a -cf "$ROOT/dist/52-Hertz-macos.zip" .)
+  echo "made dist/52-Hertz-macos.zip from run $run"
+else
+  echo "(skipped: no successful macOS build found)"
+fi
