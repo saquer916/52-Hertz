@@ -6,6 +6,21 @@ into the dark, and find your way to a pod that will finally call back.
 
 Made in one day at **Hack Club Haven Boston** (November 14, 2026). Theme: **Bounce Back**.
 
+**Play it on itch.io: [saquer916.itch.io/hertz-52](https://saquer916.itch.io/hertz-52)**
+(in the browser, or download for Windows, macOS and Linux).
+
+The name comes from a real whale that sings at 52 Hz, a pitch no other whale uses.
+
+## How to play
+
+- **Echolocate.** Tap Space for a short click in every direction. Hold it for a long call:
+  a focused beam that reaches much farther. Your sound bounces back as dots on the cliffs.
+- **Breathe.** A breath lasts about 50 seconds, and boosting uses it up faster. Every call
+  costs air too, and longer calls cost more. Surface or breach to refill.
+- **Bounce back.** Run out of air and you wake up back where you last breathed.
+- **Stay deep.** Rough waves slow you down at the surface, so you can't just swim over the maze.
+- **Find the pod** past the maze's exit, deep below. Call out when you're close and they answer.
+
 ## Controls
 
 | Input | Action |
@@ -13,33 +28,49 @@ Made in one day at **Hack Club Haven Boston** (November 14, 2026). Theme: **Boun
 | Mouse / trackpad | Steer |
 | W / Shift | Swim faster |
 | S | Slow down |
-| Space (tap) | Short echolocation click |
-| Space (hold) | Long echolocation call |
+| Space (tap) | Short click in every direction |
+| Space (hold) | Long call: a focused beam ahead |
+| R | New maze |
 | Esc | Free the mouse (click to grab it again) |
 | F11 | Fullscreen |
 
-## Run from source
+## Build from source
 
-1. Install [Godot 4.7](https://godotengine.org/) (the standard build, not .NET).
-2. Open `project.godot` and press F5.
-
-The game uses the Forward+ renderer, so it needs a GPU with Vulkan support.
-
-## Build for itch.io
+The game is in [`cpp/`](cpp/): C++20 and OpenGL, with a WebGL 2 build for the browser.
 
 ```bash
-tools/build.sh
+cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release
+cmake --build cpp/build
+./cpp/build/52hertz
 ```
 
-This writes `build/52-Hertz-linux.zip` and `build/52-Hertz-windows.zip`.
-It needs the Godot 4.7.2 export templates.
+See [`cpp/README.md`](cpp/README.md) for macOS, the browser build and packaging for itch.io.
+
+## Who wrote what
+
+- **Written by Vihan:** the gameplay ([`cpp/src/gameplay.cpp`](cpp/src/gameplay.cpp)):
+  echolocation, breathing and bounce-back, breaching and winning. Also the chase camera
+  (`Game::snapCamera` and `Game::updateCamera` in [`cpp/src/game.cpp`](cpp/src/game.cpp)),
+  the raycast against the maze (`Level::raycast` in [`cpp/src/level.cpp`](cpp/src/level.cpp)),
+  and the difficulty tuning.
+- **AI-assisted:** the engine (rendering, ocean, whale model and swimming, maze generation,
+  effects, HUD) was adapted from an AI-generated (Claude) prototype. AI also helped port it
+  to the browser (WebGL) and macOS.
+- **Not AI:** the whale model is a Creative Commons model (credited below).
+
+## Godot prototype
+
+The first version was made in Godot 4.7. It's still at the repo root (`project.godot`,
+`scenes/`, `scripts/`, `ocean/`). To run it, open `project.godot` in Godot 4.7 and press F5.
 
 ## Credits
 
-- Ocean simulation: [GodotOceanWaves](https://github.com/2Retr0/GodotOceanWaves) by 2Retr0 (MIT). See [`ocean/README.md`](ocean/README.md).
-- Sky: [Evening Road 01 (Pure Sky)](https://polyhaven.com/a/evening_road_01_puresky) by Jarod Guest, Poly Haven (CC0).
 - Humpback whale model: based on ["Humpback Whale (Idle)"](https://sketchfab.com/3d-models/humpback-whale-idle-bd64878acb0844b2be796ee91855c69e) by [Connlan_Immure](https://sketchfab.com/Connlan_Immure), licensed under [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/).
-- Orca model: based on ["Killer Whale"](https://sketchfab.com/3d-models/killer-whale-63b680d7e58f463a9868ed7bf163094a) by [Abner Wu](https://sketchfab.com/dashdu), licensed under [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/).
+- Libraries (C++ version): [GLFW](https://www.glfw.org/) (zlib), [glm](https://github.com/g-truc/glm) (MIT), [cgltf](https://github.com/jkuhlmann/cgltf) (MIT), [stb](https://github.com/nothings/stb) (MIT / public domain).
+- Godot prototype only:
+  - Ocean simulation: [GodotOceanWaves](https://github.com/2Retr0/GodotOceanWaves) by 2Retr0 (MIT). See [`ocean/README.md`](ocean/README.md).
+  - Sky: [Evening Road 01 (Pure Sky)](https://polyhaven.com/a/evening_road_01_puresky) by Jarod Guest, Poly Haven (CC0).
+  - Orca model: based on ["Killer Whale"](https://sketchfab.com/3d-models/killer-whale-63b680d7e58f463a9868ed7bf163094a) by [Abner Wu](https://sketchfab.com/dashdu), licensed under [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/).
 
 ## License
 

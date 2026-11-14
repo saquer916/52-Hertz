@@ -7,8 +7,11 @@ The Godot project at the repo root was the first prototype.
 
 - **Gameplay** ([`src/gameplay.cpp`](src/gameplay.cpp)): echolocation, breathing and
   bounce-back, breaching, and winning. Written by Vihan.
-- **Engine** (everything else in `src/`: rendering, ocean, whale model and swimming,
-  maze, effects, HUD): adapted from an AI-generated (Claude) prototype.
+- **Camera and raycast** (`Game::snapCamera` and `Game::updateCamera` in [`src/game.cpp`](src/game.cpp),
+  `Level::raycast` in [`src/level.cpp`](src/level.cpp)) and the difficulty tuning. Written by Vihan.
+- **Engine** (the rest of `src/`: rendering, ocean, whale model and swimming, maze generation,
+  effects, HUD): adapted from an AI-generated (Claude) prototype. AI also helped port it to the
+  browser (WebGL) and macOS.
 
 ## Build and run
 
@@ -39,6 +42,7 @@ macOS only has OpenGL 4.1, so the Mac build uses a 4.1 code path (`HERTZ_GL41`; 
 | Space (hold) | Long call: a focused beam ahead |
 | R | New maze |
 | Esc | Free the mouse (click to grab it again) |
+| F11 | Fullscreen |
 
 ## Credits
 
