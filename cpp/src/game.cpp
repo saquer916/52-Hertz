@@ -279,6 +279,26 @@ void Game::updateWhale(float dt, const InputState& in) {
   w.swim.update(dt, w.speed, Whale::kBoost, w.turnRate);
 }
 
+void Game::snapCamera() {
+  glm::mat3 b = whale_.basis();
+  camPos_ = whale_.pos + b * glm::vec3(0, 3.5f, 12.0f);
+  camAim_ = whale_.pos + whale_.forward() * 8.0f;
+}
+
+void Game::updateCamera(float dt) {
+  // 12 m behind and 3.5 m above, smoothed; pulled in if a wall is in the way.
+  glm::mat3 b = whale_.basis();
+  glm::vec3 desired = whale_.pos + b * glm::vec3(0, 3.5f, 12.0f);
+  glm::vec3 d = desired - whale_.pos;
+  float len = glm::length(d);
+  RayHit hit;
+  if (len > 1e-3f && level_.raycast(whale_.pos, d / len, len, hit)) desired = hit.pos + hit.normal * 0.5f;
+  camPos_ += (desired - camPos_) * (1.0f - std::exp(-4.0f * dt));
+  glm::vec3 n;
+  level_.resolveSphere(camPos_, 0.4f, n);
+  camAim_ = whale_.pos + whale_.forward() * 8.0f;
+}
+
 void Game::castEcho(float hold) {
   Echo::Call call = Echo::callFor(hold);
   glm::vec3 origin = whale_.head();
