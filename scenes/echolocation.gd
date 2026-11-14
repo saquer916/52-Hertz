@@ -30,6 +30,32 @@ func _physics_process(delta: float) -> void:
 		var hit := space.intersect_ray(query);
 		if hit:
 			hits += 1;
+			spawn_dot(hit.position, pendingReach);
 	print("hits: ", hits, " / ", pendingRays);
 	pendingRays = 0;
+	
+var dotMesh : SphereMesh;
+
+func _ready() -> void:
+	dotMesh = SphereMesh.new();
+	dotMesh.radius = 0.15;
+	dotMesh.height = 0.3;
+	dotMesh.radial_segments = 6;
+	dotMesh.rings = 3;
+	var mat := StandardMaterial3D.new();
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED;
+	mat.albedo_color = Color(0.6, 0.9, 1.0);
+	dotMesh.material = mat;
+	
+func spawn_dot(where: Vector3, reach: float) -> void:
+	var dot := MeshInstance3D.new();
+	dot.mesh = dotMesh;
+	get_tree().current_scene.add_child(dot);
+	dot.global_position = where;
+	var distance := where.distance_to(global_position);
+	dot.transparency = clampf(distance / reach, 0.0, 0.85);
+	
+	var tw := dot.create_tween();
+	tw.tween_property(dot, "transparency", 1.0, 5.0);
+	tw.tween_callback(dot.queue_free);
 	
