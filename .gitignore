@@ -7,3 +7,6 @@
 # Paid or restricted assets that can't be shared in a public repo.
 # They still get packed into the exported game builds.
 /assets/licensed/
+
+# Wakatime plugin download cache (the CLI itself lives in ~/.wakatime)
+/addons/godot_super-wakatime/wakatime.zip
