@@ -1,23 +1,22 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://xiutiacx6kmc"]
 
-[ext_resource type="Script" path="res://ocean/ocean.gd" id="1_ocean"]
-[ext_resource type="Script" path="res://ocean/water.gd" id="2_water"]
-[ext_resource type="Script" path="res://ocean/wave_cascade_parameters.gd" id="3_params"]
-[ext_resource type="Material" path="res://ocean/mat_water.tres" id="4_matwater"]
-[ext_resource type="ArrayMesh" path="res://ocean/clipmap_high.obj" id="5_clipmap"]
-[ext_resource type="Shader" path="res://ocean/shaders/spatial/sea_spray.gdshader" id="6_sprayshader"]
-[ext_resource type="Material" path="res://ocean/mat_spray.tres" id="7_matspray"]
-[ext_resource type="Texture2D" path="res://ocean/sea_spray.png" id="8_spraytex"]
+[ext_resource type="Script" uid="uid://ba3wv78cm6p6r" path="res://ocean/ocean.gd" id="1_ocean"]
+[ext_resource type="Script" uid="uid://do51yuitk5are" path="res://ocean/water.gd" id="2_water"]
+[ext_resource type="Script" uid="uid://c13rnj2nc4yoe" path="res://ocean/wave_cascade_parameters.gd" id="3_params"]
+[ext_resource type="Material" uid="uid://byumtcccq4ew3" path="res://ocean/mat_water.tres" id="4_matwater"]
+[ext_resource type="ArrayMesh" uid="uid://ds7vfltq3nxwu" path="res://ocean/clipmap_high.obj" id="5_clipmap"]
+[ext_resource type="Shader" uid="uid://cwmtxvefryoif" path="res://ocean/shaders/spatial/sea_spray.gdshader" id="6_sprayshader"]
+[ext_resource type="Material" uid="uid://5xqyddws6rt5" path="res://ocean/mat_spray.tres" id="7_matspray"]
+[ext_resource type="Texture2D" uid="uid://cll0mpfaumlf4" path="res://ocean/sea_spray.png" id="8_spraytex"]
 
 [sub_resource type="Resource" id="Cascade_swell"]
 script = ExtResource("3_params")
 tile_length = Vector2(256, 256)
-displacement_scale = 0.6
-normal_scale = 1.0
-wind_speed = 10.0
+displacement_scale = 1.073
+wind_speed = 13.0
 wind_direction = 20.0
 fetch_length = 1500.0
-swell = 1.6
+swell = 1.019
 spread = 0.1
 detail = 0.5
 whitecap = 1.0
@@ -47,15 +46,14 @@ wind_direction = 20.0
 fetch_length = 500.0
 swell = 1.0
 spread = 0.4
-detail = 1.0
 whitecap = 1.0
 foam_amount = 0.0
 
 [sub_resource type="FastNoiseLite" id="SprayNoise"]
 
 [sub_resource type="NoiseTexture2D" id="SprayNoiseTexture"]
-seamless = true
 noise = SubResource("SprayNoise")
+seamless = true
 
 [sub_resource type="ShaderMaterial" id="SprayDrawMaterial"]
 render_priority = 0
@@ -66,22 +64,21 @@ shader_parameter/dissolve_texture = SubResource("SprayNoiseTexture")
 
 [sub_resource type="QuadMesh" id="SprayQuad"]
 
-[node name="Ocean" type="Node3D" groups=["ocean"]]
+[node name="Ocean" type="Node3D" unique_id=309650701 groups=["ocean"]]
 script = ExtResource("1_ocean")
 
-[node name="Water" type="MeshInstance3D" parent="."]
+[node name="Water" type="MeshInstance3D" parent="." unique_id=836431676]
 sorting_offset = 999.0
 material_override = ExtResource("4_matwater")
 cast_shadow = 0
 mesh = ExtResource("5_clipmap")
-skeleton = NodePath("")
 script = ExtResource("2_water")
 foam_color = Color(0.88, 0.92, 0.95, 1)
+parameters = Array[ExtResource("3_params")]([SubResource("Cascade_swell"), SubResource("Cascade_chop"), SubResource("Cascade_ripples")])
 map_size = 512
 updates_per_second = 30.0
-parameters = Array[ExtResource("3_params")]([SubResource("Cascade_swell"), SubResource("Cascade_chop"), SubResource("Cascade_ripples")])
 
-[node name="WaterSprayEmitter" type="GPUParticles3D" parent="Water"]
+[node name="WaterSprayEmitter" type="GPUParticles3D" parent="Water" unique_id=2088821018]
 transform = Transform3D(15, 0, 0, 0, 15, 0, 0, 0, 15, 0, 0, 0)
 material_override = SubResource("SprayDrawMaterial")
 cast_shadow = 0

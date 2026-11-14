@@ -20,9 +20,42 @@ global uniform uint num_cascades;
 global uniform sampler2DArray displacements;         // Each layer represents one wave cascade.
 global uniform sampler2DArray normals : hint_normal; // Each layer represents one wave cascade.
 
+// --- 52 Hertz: ripples where the whale breaks the surface (set by ocean.gd) ---
+#define MAX_IMPACTS 8
+group_uniforms impact_ripples;
+uniform vec4 impacts[MAX_IMPACTS];         // xy = world x/z, z = start time, w = strength (0 = unused)
+uniform float impact_time = 0.0;           // Current time, on the same clock as the start times.
+uniform float ripple_speed = 7.0;          // How fast the rings travel outward (m/s).
+uniform float ripple_wavelength = 5.0;     // Distance between rings (m).
+uniform float ripple_lifetime = 7.0;       // Seconds before an impact has fully settled.
+group_uniforms;
+
 varying float wave_height;
 varying float foam_factor;
 varying float fresnel;
+
+/** Height of the impact ripples at a world x/z position. */
+float ripple_height(vec2 p, out float foam) {
+	float height = 0.0;
+	foam = 0.0;
+	for (int i = 0; i < MAX_IMPACTS; i++) {
+		vec4 impact = impacts[i];
+		float age = impact_time - impact.z;
+		if (impact.w <= 0.0 || age < 0.0 || age > ripple_lifetime) continue;
+		float d = length(p - impact.xy);
+		float settle = 1.0 - smoothstep(ripple_lifetime * 0.4, ripple_lifetime, age); // Fade out smoothly at the end.
+		// The water heaves up where the whale broke through, then sinks and sloshes.
+		float heave = 2.0 * exp(-age * 1.6) * cos(age * 5.0) * exp(-d * d / 25.0);
+		// A few sharp rings travel outward just behind the front, flattening as they spread.
+		float x = d - ripple_speed * age;
+		float envelope = (x > 0.0 ? exp(-x * x / 4.0) : exp(x / (3.0 + age * 1.5))) * exp(-age * 0.45) / (1.0 + d * 0.04);
+		float wave = sin(TAU * x / ripple_wavelength);
+		height += impact.w * settle * (heave + 1.1 * envelope * wave);
+		// Foam only on the ring crests, plus a small patch where the whale hit.
+		foam += impact.w * settle * (0.35 * envelope * max(wave, 0.0) + 0.8 * exp(-age * 0.9) * exp(-d * d / 25.0));
+	}
+	return height;
+}
 
 void vertex() {
 	UV = VERTEX.xz;
@@ -34,6 +67,11 @@ void vertex() {
 		vec4 scales = map_scales[i];
 		displacement += texture(displacements, vec3(UV*scales.xy, float(i))).xyz * scales.z;
 	}
+
+	// 52 Hertz: lift/lower the surface with the impact ripples (lighting and foam are per pixel below).
+	float foam_unused;
+	displacement.y += ripple_height(UV, foam_unused);
+
 	VERTEX += displacement * distance_factor;
 	wave_height = displacement.y;
 }
@@ -84,9 +122,16 @@ void fragment() {
 	}
 		
 	foam_factor = smoothstep(0.0, 1.0, gradient.z*0.75) * exp(-dist*0.0075);
+	// 52 Hertz: impact ripples, worked out per pixel so the rings stay sharp.
+	float ripple_foam, foam_unused;
+	float ripple = ripple_height(UV, ripple_foam);
+	const float STEP = 0.2;
+	vec2 ripple_slope = vec2(ripple_height(UV + vec2(STEP, 0.0), foam_unused) - ripple, ripple_height(UV + vec2(0.0, STEP), foam_unused) - ripple) / STEP;
+	foam_factor = max(foam_factor, clamp(ripple_foam, 0.0, 1.0));
 	ALBEDO = mix(water_color.rgb, foam_color.rgb, foam_factor);
 
 	gradient *= mix(0.015, normal_strength, exp(-dist*0.0175)); // Blend normal with terrain normal as distance increases.
+	gradient.xy += ripple_slope; // 52 Hertz: tilt the surface along the impact ripples.
 	NORMAL = (VIEW_MATRIX * vec4(normalize(vec3(-gradient.x, 1.0, -gradient.y)), 0.0)).xyz;
 
 	fresnel = mix(pow(1.0 - dot(VIEW, NORMAL), 5.0*exp(-2.69*roughness)) / (1.0 + 22.7*pow(roughness, 1.5)), 1.0, REFLECTANCE);

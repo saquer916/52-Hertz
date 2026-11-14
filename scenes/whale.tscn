@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://assets/models/humpback_whale/scene.gltf" id="4_humpback"]
 [ext_resource type="Script" path="res://scripts/swim_motion.gd" id="5_swim"]
 [ext_resource type="Script" path="res://scripts/underwater_view.gd" id="6_underwater"]
+[ext_resource type="Script" path="res://scripts/surface_ripples.gd" id="7_ripples"]
 
 [sub_resource type="CapsuleShape3D" id="BodyShape"]
 radius = 1.4
@@ -46,3 +47,6 @@ height = 3.5
 
 [node name="UnderwaterView" type="Node" parent="ChaseCamera"]
 script = ExtResource("6_underwater")
+
+[node name="SurfaceRipples" type="Node" parent="."]
+script = ExtResource("7_ripples")
