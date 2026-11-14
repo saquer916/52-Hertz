@@ -66,7 +66,7 @@ shader_parameter/dissolve_texture = SubResource("SprayNoiseTexture")
 
 [sub_resource type="QuadMesh" id="SprayQuad"]
 
-[node name="Ocean" type="Node3D"]
+[node name="Ocean" type="Node3D" groups=["ocean"]]
 script = ExtResource("1_ocean")
 
 [node name="Water" type="MeshInstance3D" parent="."]
@@ -76,6 +76,8 @@ cast_shadow = 0
 mesh = ExtResource("5_clipmap")
 skeleton = NodePath("")
 script = ExtResource("2_water")
+map_size = 512
+updates_per_second = 30.0
 parameters = Array[ExtResource("3_params")]([SubResource("Cascade_swell"), SubResource("Cascade_chop"), SubResource("Cascade_ripples")])
 
 [node name="WaterSprayEmitter" type="GPUParticles3D" parent="Water"]

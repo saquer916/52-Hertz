@@ -38,6 +38,7 @@ It needs the Godot 4.7.2 export templates.
 
 - Ocean simulation: [GodotOceanWaves](https://github.com/2Retr0/GodotOceanWaves) by 2Retr0 (MIT). See [`ocean/README.md`](ocean/README.md).
 - Sky: [Evening Road 01 (Pure Sky)](https://polyhaven.com/a/evening_road_01_puresky) by Jarod Guest, Poly Haven (CC0).
+- Humpback whale model: based on ["Humpback Whale (Idle)"](https://sketchfab.com/3d-models/humpback-whale-idle-bd64878acb0844b2be796ee91855c69e) by [Connlan_Immure](https://sketchfab.com/Connlan_Immure), licensed under [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/).
 - Orca model: based on ["Killer Whale"](https://sketchfab.com/3d-models/killer-whale-63b680d7e58f463a9868ed7bf163094a) by [Abner Wu](https://sketchfab.com/dashdu), licensed under [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/).
 
 ## License

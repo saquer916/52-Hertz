@@ -1,0 +1,11 @@
+Model Information:
+* title:	Humpback Whale (Idle)
+* source:	https://sketchfab.com/3d-models/humpback-whale-idle-bd64878acb0844b2be796ee91855c69e
+* author:	Connlan_Immure (https://sketchfab.com/Connlan_Immure)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Humpback Whale (Idle)" (https://sketchfab.com/3d-models/humpback-whale-idle-bd64878acb0844b2be796ee91855c69e) by Connlan_Immure (https://sketchfab.com/Connlan_Immure) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -48,13 +48,19 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	var depth := water_level - camera.global_position.y
+	# The surface can't be seen from below, so pause and hide the ocean (and its
+	# spray) while underwater. That's a big speed-up on laptop graphics.
+	_set_ocean_active(depth <= 0.0)
 	if depth <= 0.0:
 		camera.environment = null # Above water: use the level's normal look.
 		if _sun:
 			_sun.light_energy = _sun_energy
+			_sun.shadow_enabled = true
 		return
 
 	var t := clampf(depth / dark_depth, 0.0, 1.0)
+	if _sun:
+		_sun.shadow_enabled = t < 0.3 # Shadows aren't visible in dark water.
 	var visibility := lerpf(shallow_visibility, deep_visibility, t)
 	_below.fog_light_color = shallow_color.lerp(deep_color, t)
 	# Near the surface the haze starts right away (it looks like water); deep down it
@@ -65,3 +71,10 @@ func _process(_delta: float) -> void:
 	camera.environment = _below
 	if _sun:
 		_sun.light_energy = _sun_energy * lerpf(1.0, deep_light, t)
+
+
+func _set_ocean_active(active: bool) -> void:
+	for ocean: Node3D in get_tree().get_nodes_in_group("ocean"):
+		if ocean.visible != active:
+			ocean.visible = active
+			ocean.process_mode = Node.PROCESS_MODE_INHERIT if active else Node.PROCESS_MODE_DISABLED

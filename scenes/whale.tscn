@@ -3,13 +3,13 @@
 [ext_resource type="Script" uid="uid://blksg1xuydfbb" path="res://scripts/whale.gd" id="1_whale"]
 [ext_resource type="Script" uid="uid://caif2hv1g1fx6" path="res://scenes/echolocation.gd" id="2_upqel"]
 [ext_resource type="Script" uid="uid://b2kt61os643r6" path="res://scripts/chase_camera.gd" id="3_camera"]
-[ext_resource type="PackedScene" path="res://assets/models/killer_whale/scene.gltf" id="4_orca"]
+[ext_resource type="PackedScene" path="res://assets/models/humpback_whale/scene.gltf" id="4_humpback"]
 [ext_resource type="Script" path="res://scripts/swim_motion.gd" id="5_swim"]
 [ext_resource type="Script" path="res://scripts/underwater_view.gd" id="6_underwater"]
 
 [sub_resource type="CapsuleShape3D" id="BodyShape"]
-radius = 1.0
-height = 8.5
+radius = 1.4
+height = 13.0
 
 [node name="Whale" type="CharacterBody3D" unique_id=1765649415]
 collision_layer = 2
@@ -22,20 +22,24 @@ shape = SubResource("BodyShape")
 
 [node name="Model" type="Node3D" parent="." unique_id=1699720965]
 script = ExtResource("5_swim")
+spine_bones = PackedStringArray("Tail_J1_01", "Tail_J2_02", "Tail_J3_03", "Tail_J4_04", "Tail_J5_05")
+head_bone = "Head_J1_06"
+flipper_bones = PackedStringArray()
+bend_axis = Vector3(0, 0, 1)
 
-[node name="Orca" parent="Model" instance=ExtResource("4_orca")]
-transform = Transform3D(-0.0092391, 0, 0, 0, 0.0092391, 0, 0, 0, -0.0092391, 0, -0.106, -4.212)
+[node name="Humpback" parent="Model" instance=ExtResource("4_humpback")]
+transform = Transform3D(0, 0, -0.50578, 0, 0.50578, 0, 0.50578, 0, 0, 0, -1.77, 1.0116)
 
 [node name="Echolocation" type="Node3D" parent="." unique_id=311001523]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -4.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6.8)
 script = ExtResource("2_upqel")
 
 [node name="ChaseCamera" type="Camera3D" parent="." unique_id=1005061656]
 top_level = true
 current = true
 script = ExtResource("3_camera")
-distance = 13.0
-height = 3.0
+distance = 22.0
+height = 5.0
 
 [node name="UnderwaterView" type="Node" parent="ChaseCamera"]
 script = ExtResource("6_underwater")
