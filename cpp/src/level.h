@@ -18,7 +18,7 @@ struct RayHit {
 // depth-first search that likes to keep going straight (a port of gen_maze.py).
 class Level {
  public:
-  static constexpr int kCols = 5, kRows = 4;
+  static constexpr int kCols = 7, kRows = 6;
   static constexpr float kCell = 50.0f, kThick = 5.0f;
   static constexpr float kFloorY = -59.0f, kWallTop = 30.0f;
 

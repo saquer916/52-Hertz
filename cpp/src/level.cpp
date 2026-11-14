@@ -237,7 +237,7 @@ void Level::generate(unsigned seed) {
       if (dist[{x, kRows - 1}] > steps) steps = dist[{x, kRows - 1}], exitX = x;
     // The whale starts facing +X, so the first cell must open that way.
     bool opensEast = open.count(edge(startCell, {startCell.first + 1, startCell.second})) > 0;
-    if (steps >= 8 && steps <= 12 && opensEast && exitX != startCell.first) break;
+    if (steps >= 14 && steps <= 22 && opensEast && exitX != startCell.first) break;
     if (s - seed > 5000) break;
   }
   seedUsed = s;
@@ -284,7 +284,7 @@ void Level::generate(unsigned seed) {
   start = glm::vec3(0.0f, -10.0f, 0.0f);
   startYaw = -1.5707963f;
   exitGap = glm::vec3(cx(exitX), -10.0f, cz(kRows - 1) - kCell / 2);
-  goal = glm::vec3(cx(exitX), -10.0f, cz(kRows - 1) - kCell / 2 - 30.0f);
+  goal = glm::vec3(cx(exitX), -45.0f, cz(kRows - 1) - kCell / 2 - 30.0f);
   route.push_back(exitGap);
   route.push_back(goal);
   bounds = glm::vec4(cx(0) - kCell / 2, cz(kRows - 1) - kCell / 2, cx(kCols - 1) + kCell / 2, cz(0) + kCell / 2);

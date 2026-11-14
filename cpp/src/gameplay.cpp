@@ -5,7 +5,7 @@
 #include "game.h"
 
 namespace {
-constexpr float kBreathSeconds = 50.0f;  // a full breath lasts this long under water
+constexpr float kBreathSeconds = 40.0f;  // a full breath lasts this long under water
 constexpr float kRefillSeconds = 2.5f;   // empty to full at the surface
 constexpr float kBreathLine = -3.0f;     // you can breathe above this depth
 }  // namespace
@@ -18,6 +18,7 @@ void Game::updateEchoInput(float dt, const InputState& in) {
     holdTime_ += dt;
   }
   else if (!in.echo && echoHeld_) {
+    breath_ -= 0.03f + 0.07f * std::clamp(holdTime_ / 1.2f, 0.0f, 1.0f);
     castEcho(holdTime_);
   }
   echoHeld_  = in.echo;
@@ -60,7 +61,7 @@ void Game::updateBreath(float dt) {
     if (breath_ > 1) breath_ = 1;
   } 
   else {
-    breath_ -= dt/kBreathSeconds;
+    breath_ -= dt / kBreathSeconds * std::max(1.0f, whale_.speed / Whale::kCruise);
     if (breath_ <= 0) startBounceBack();
   }
 }
