@@ -1,7 +1,9 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://d3ltiawv81bmq"]
 
-[ext_resource type="Texture2D" path="res://assets/sky/evening_road_01_puresky.png" id="1_sky"]
+[ext_resource type="Texture2D" uid="uid://b2tpxiwat8dd0" path="res://assets/sky/evening_road_01_puresky.png" id="1_sky"]
 [ext_resource type="PackedScene" path="res://ocean/ocean.tscn" id="2_ocean"]
+[ext_resource type="PackedScene" path="res://scenes/whale.tscn" id="3_sugp2"]
+[ext_resource type="PackedScene" path="res://scenes/level_1.tscn" id="4_level1"]
 
 [sub_resource type="PanoramaSkyMaterial" id="SkyMaterial"]
 panorama = ExtResource("1_sky")
@@ -37,12 +39,12 @@ albedo = Color(0.988718, 0.989631, 0.989629, 1)
 height_falloff = 0.176
 edge_fade = 1.75
 
-[node name="Main" type="Node3D"]
+[node name="Main" type="Node3D" unique_id=1280217870]
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1398562037]
 environment = SubResource("Environment")
 
-[node name="Sun" type="DirectionalLight3D" parent="."]
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1973029616]
 transform = Transform3D(0.945601, -0.0516921, 0.321197, -0.00840572, 0.983084, 0.18296, -0.325221, -0.175707, 0.929171, 0, 10, 0)
 shadow_enabled = true
 shadow_bias = 0.0
@@ -50,11 +52,13 @@ shadow_normal_bias = 6.464
 shadow_opacity = 0.8
 shadow_blur = 5.0
 
-[node name="SeaMist" type="FogVolume" parent="."]
+[node name="SeaMist" type="FogVolume" parent="." unique_id=1706980876]
 shape = 4
 material = SubResource("SeaMist")
 
-[node name="Ocean" parent="." instance=ExtResource("2_ocean")]
+[node name="Ocean" parent="." unique_id=2126708483 instance=ExtResource("2_ocean")]
 
-[node name="PreviewCamera" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.984808, 0.173648, 0, -0.173648, 0.984808, 0, 8, 0)
+[node name="Level1" parent="." instance=ExtResource("4_level1")]
+
+[node name="Whale" parent="." unique_id=1144745044 instance=ExtResource("3_sugp2")]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 0, -10, 0)
